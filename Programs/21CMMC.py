@@ -38,7 +38,7 @@ if __name__ == '__main__':
 	# Whether or not one wants the inital conditions to be varied within the MCMC (needs to be True if one wants to jointly sample the cosmological parameters)
 	#### NOTE ####
 	# If this is set to true, none of the interpolation tables can be used as they are valid only for a single set of initial conditions.
-	GenerateNewICs = True
+	GenerateNewICs = False
 
 	# Create the list of cosmological values to vary. Parameter names entered here must match the naming convention below, otherwise they will not be detected and thus varied
 	# Fiducial values and parameter bounds for the cosmological parameters can be changed below
@@ -55,10 +55,10 @@ if __name__ == '__main__':
         # The number of halos hosting active galaxies (i.e. the duty cycle) is assumed to
         # exponentially decrease below M_TURNOVER Msun, : fduty \propto e^(- M_TURNOVER / M)
         # See eq. (?) in Park et al....
-        USE_MASS_DEPENDENT_ZETA = True
+        USE_MASS_DEPENDENT_ZETA = True 
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
-	Include_Ts_fluc = False
+	Include_Ts_fluc = True
 
 	# If the full spin temperature computation is to be performed, a redshift must be provided to which to perform the evolution down to.
 	TsCalc_z = 6.0
@@ -96,13 +96,17 @@ if __name__ == '__main__':
 	# This is different to 'CreateFcollTable' above
 
 	# Whether to include inhomogeneous recombinations in the computation
-	USE_INHOMO_RECO = False
+	USE_INHOMO_RECO = True
 	# This will enable inhomogeneous recombinations to be used, as included in the latest version of 21cmFAST
 	# This uses the Sobacchi & Mesinger (2014) approach for computing the sub-grid recombinations
 	### NOTE ###
 	# In setting this as true, the mean free path parameter (R_MFP) is no longer a free parameter. R_MFP becomes fixed at 50 Mpc, as is default in 21cmFAST
 	# To actually change this default choice of 50 Mpc, the user needs to change the value for INHOMO_RECO_R_BUBBLE_MAX in drive_21cmMC_streamlined.c as this is 
 	# where the value is hard coded (needs to be there for when drive_21cmMC_streamlined is run independent of the MCMC sampler)
+	### NOTE ###
+	# When USE_INHOMO_RECO is True, then the code reverts to performing find_HII_bubbles for all the redshifts sampled by the spin temperature calculation (Ts.c)
+	# This is because to perform the inhomogeneous recombinations, the previous timesteps need to be stored to accurately track the sub-grid recombinations
+
 
 	# Whether to include line of sight (z-direction only) redshift space distortions (RSDs)
 	INCLUDE_SUBCELL_RSDS = False
@@ -117,6 +121,7 @@ if __name__ == '__main__':
 	# I do not know if it works for the x or y directions, I have not checked (I think it should though). I always work in the z-direction.
 	LOS_direction = 2
 
+	USE_GLOBAL_SIGNAL = False
 	# Set to true if one wants to use the global signal rather than the 21cm PS to parameter sampling. Note, the mock observations will need to be changed accordingly
 	### NOTE ###
 	# If one wants to use the global signal, set IncludeLightCone = True. Setting this to true, will output the global signal at the redshift sampling of the spin temperature
@@ -128,8 +133,7 @@ if __name__ == '__main__':
 	# The global signal is interpolated, therefore it is important that if IncludeLightCone = False, that the redshifts selected in the lists Redshift or Redshifts_For_Prior
 	# include the endpoints of the redshift (frequency) range of the global signal measurement (i.e. cannot guarantee the robustness of the extrapolation). Additionally, be wary 
 	# that the chosen TsCalc_z (redshift of the spin temperature calculation) corresponds to a redshift (frequency) consistent with the global signal measurement. For example,
-	# the default TsCalc_z = 6.0 corresponds basically to 200 MHz (in-built (default) Z_HEAT_MAX is z = 35 which corresponds to 40 MHz)
-	USE_GLOBAL_SIGNAL = False
+	# the default TsCalc_z = 6.0 corresponds basically to 200 MHz (in-built (default) Z_HEAT_MAX is z = 35 which corresponds to 40 MHz)	
 
 	# Define whether a fixed error on the 21cm global signal is to be used, or whether to read from file
 	GLOBAL_SIGNAL_FIXED_ERROR = False
@@ -159,7 +163,6 @@ if __name__ == '__main__':
 	X_RAY_TVIR_LB = 4.0
 	X_RAY_TVIR_UB = 6.0
 
-        # Will remove this option
 	# Setting IncludeAlpha = True, results in the sampling of a mass dependent ionising efficiency.
 	# This mass dependent ionising efficiency is defined as (Mass / M_vir)**(Alpha)
 	# - M_vir is the mass corresponding to the Virial Temperature (T_Vir) evaluated at the respective redshift (T_vir is defined to be redshift independent)
@@ -167,7 +170,7 @@ if __name__ == '__main__':
 	# IncludeAlpha = True allows for a 4 parameter model to be sampled.
 	# *** NOTE *** As yet there is no support for the 4 parameter model. This needs to be added at some point down the line. I don't know what you will get if
 	# you set this to 'True' at the present time! (I think it works if Include_Ts_fluc is set to false, i.e. only co-eval boxes in the saturated spin temperature limit)
-	#IncludeAlpha = False 
+	IncludeAlpha = False 
 
 	# Reionisation redshifts for the multi-z 21cm Fast "observations"
 	# Need to make sure that these boxes exist in the "Boxes" folder. If not, please generate new boxes
@@ -188,14 +191,14 @@ if __name__ == '__main__':
 	### NOTE ### Redshifts added here must always be added in increasing order.
 	if IncludeLightCone is False:
 
-		Redshift = ['8.237142', '9.402521', '10.714930']
+		Redshift = ['6.429094', '7.041489', '7.533692', '8.610322']
 
 #		Redshift = ['6.429094', '7.202319', '8.237142', '9.402521', '10.714930', '12.456770', '14.457590', '17.111031','20.219959','24.359810']
 #		Redshift = ['6.000594', '7.041489', '8.056021', '8.998578', '10.949220', '13.000420', '15.082080', '17.111023']	
 #		Redshift = ['6.000594', '7.041489', '8.056021', '8.998578']	
 #		Redshift = ['6.000594']
 
-		Redshifts_For_Prior = ['6.429094','14.457590','17.111031']
+		Redshifts_For_Prior = []
 
 	
 	### NOTE ###
@@ -321,11 +324,14 @@ if __name__ == '__main__':
 			### NOTE ###
 			# If Include_Ts_fluc is set, the user must ensure that the co-eval redshift to be sampled (set by the Redshift list above) is to be sampled by the code.			
 
-			MockObsFileName = 'MockObs_FaintGalaxies_PS_600Mpc'
+#			MockObsFileName = 'MockObs_FaintGalaxies_PS_600Mpc'
+			MockObsFileName = 'MockObs_PS_200Mpc_EOS_FaintGalaxies'
 #			MockObsFileName = 'MockObs_BrightGalaxies_PS_600Mpc'
-			ModelName = 'FaintGalaxies'
+#			ModelName = 'FaintGalaxies'
+			ModelName = 'EOS_FaintGalaxies'
 #			ModelName = 'BrightGalaxies'
-			BoxType = 'Co-Eval'
+#			BoxType = 'Co-Eval'
+			BoxType = 'Co-Eval'			
 
 			for i in range(len(Redshift)):		
 				mockobs_k_values = numpy.loadtxt('MockObs/%s/%s/%s_z%s.txt'%(ModelName,BoxType,MockObsFileName,Redshift[i]), usecols=(0,))
@@ -416,14 +422,18 @@ if __name__ == '__main__':
 
 		else:
 
-			NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
+#			NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
+			NoiseFileName = 'TotalError_%s_PS_200Mpc'%(Telescope_Name)
 
-			ModelName = 'FaintGalaxies'
+#			ModelName = 'FaintGalaxies'
+			ModelName = 'EOS_FaintGalaxies'
 			BoxType = 'Co-Eval'
 
 			for i in range(len(Redshift)):
-				Error_k_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(0,))
-				Error_PS_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(1,))
+#				Error_k_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(0,))
+#				Error_PS_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(1,))
+				Error_k_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(0,))
+				Error_PS_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(1,))
 
 				multi_z_Error_k.append(Error_k_values)
 				multi_z_Error_PS.append(Error_PS_values)
@@ -447,7 +457,7 @@ if __name__ == '__main__':
 	# Including a modelling uncertainty. This accounts for differences between semi-numerical and N-body/Hydro/RT prescriptions for EoR simulations. Setting to 0.0
 	# will remove the uncertainty. 0.10 corresponds to 10 per cent modelling uncertainty. If set > 0.0, this error adds in quadrature with the telescope sensitivity 
 	# for each k-mode.
-	ModUncert = 0.0
+	ModUncert = 0.2
 
 	# To be added to the string name for the output MCMC data
 	if IncludeLightCone is True:
@@ -474,7 +484,8 @@ if __name__ == '__main__':
 	param_upper_limits = []
 
 	# Setting up a dictionary of the available parameters to be sampled. Set "True" to allow this parameter to be varied, set "False" if it is to be held fixed
-	"""
+
+        """
 	# Alpha (power-law). Note: Current version does not support a mass-dependent power law ionising efficiency to be used with the spin temperature fluctuations
 	param_legend['ALPHA'] = False	
 
@@ -486,24 +497,25 @@ if __name__ == '__main__':
 	param_string_names.append('ALPHA')
 	param_lower_limits.append(LowerBound_Alpha)
 	param_upper_limits.append(UpperBound_Alpha)
-	"""
+        """
         # Set fiducial values for parameters, and its lower and upper bounds. 
         # Not all will be used, depends on what options are set.
 
         # New in v1.4 : (1) start
-	# The halo mass-dependent ionizing efficiency is defined as
+        # The halo mass-dependent ionizing efficiency is defined as
         # \zeta = N_{\gammaUV} x f_{esc} x f_{\ast}
         # where:
         # f_{\ast} = F_STAR10 x (M_{halo}/10^10 M_{sol})^ALPHA_STAR
         # f_{esc} = F_ESC10 x (M_{halo}/10^10 M_{sol})^ALPHA_ESC
         # The number of halos hosting active galaxies (i.e. the duty cycle) is assumed to
         # exponentially decrease below M_TURN Msun, : fduty \propto e^(- M_TURN / M)
+
         # Stellar baryon fraction defined for 10^10 Msun halos
         param_legend['F_STAR10'] = True   
 
-        Fiducial_Fstar10 = 0.05
-        LowerBound_Fstar10 = 0.
-        UpperBound_Fstar10 = 1.
+        Fiducial_Fstar10 = 0.05 
+        LowerBound_Fstar10 = 0. 
+        UpperBound_Fstar10 = 1. 
 
         param_string_names.append('F_STAR10')
         param_lower_limits.append(LowerBound_Fstar10)
@@ -512,9 +524,9 @@ if __name__ == '__main__':
         # Power law index with halo mass
         param_legend['ALPHA_STAR'] = True 
 
-        Fiducial_AlphaStar = 0.4 
-        LowerBound_AlphaStar = -1. 
-        UpperBound_AlphaStar = 1.
+        Fiducial_AlphaStar = 0.4  
+        LowerBound_AlphaStar = -1.  
+        UpperBound_AlphaStar = 1. 
 
         param_string_names.append('ALPHA_STAR')
         param_lower_limits.append(LowerBound_AlphaStar)
@@ -523,7 +535,7 @@ if __name__ == '__main__':
         # Escape fraction defined for 10^10 Msun halos
         param_legend['F_ESC10'] = True
 
-        Fiducial_Fesc10 = 0.1 
+        Fiducial_Fesc10 = 0.1
         LowerBound_Fesc10 = 0.
         UpperBound_Fesc10 = 1.
 
@@ -568,17 +580,17 @@ if __name__ == '__main__':
         param_upper_limits.append(UpperBound_t_STAR)
         # New in v1.4 : (1) end
 
-	# Constant ionising efficiency, Zeta
-	param_legend['ZETA'] = True
+        # Constant ionising efficiency, Zeta
+        param_legend['ZETA'] = True
 
-	# Set a fiducial value for Zeta, and its lower and upper bounds. Not all will be used, depends on what options are set.
-	Fiducial_Zeta = 30.0
-	LowerBound_Zeta = 10.0
-	UpperBound_Zeta = 250.0
+        # Set a fiducial value for Zeta, and its lower and upper bounds. Not all will be used, depends on what options are set.
+        Fiducial_Zeta = 30.0
+        LowerBound_Zeta = 10.0
+        UpperBound_Zeta = 250.0
 
-	param_string_names.append('ZETA')
-	param_lower_limits.append(LowerBound_Zeta)
-	param_upper_limits.append(UpperBound_Zeta)
+        param_string_names.append('ZETA')
+        param_lower_limits.append(LowerBound_Zeta)
+        param_upper_limits.append(UpperBound_Zeta)
 
 	# Mean ionising photon horizon, R_mfp
 	param_legend['MFP'] = True
@@ -672,7 +684,7 @@ if __name__ == '__main__':
 	param_upper_limits.append(UpperBound_X_RAY_SPEC_INDEX)	
 
 	############### Condition: If Include_Ts_fluc = False, then X-ray heating parameters cannot be varied.  ###############
-	############### Overwrite any param_legend values for the X-ray parameters to False 					###############
+	############### Overwrite any param_legend values for the X-ray parameters to False 			###############
 
 	if Include_Ts_fluc is False:
 			param_legend['L_X'] = False
@@ -688,7 +700,7 @@ if __name__ == '__main__':
 	# Set up ranges and values for any of the cosmological values to be varied
 
 	# Sigma 8 (normalisation of the 21cm PS)
-	Fiducial_Sigma8 = 0.815000
+	Fiducial_Sigma8 = 0.820000
 	
 	LowerBound_SIGMA_8 = 0.7
 	UpperBound_SIGMA_8 = 0.95
@@ -703,7 +715,7 @@ if __name__ == '__main__':
 		param_legend['SIGMA_8'] = False		
 
 	# little h (value of H_0)
-	Fiducial_littleh = 0.678000
+	Fiducial_littleh = 0.680000
 
 	LowerBound_littleh = 0.65
 	UpperBound_littleh = 0.71
@@ -719,7 +731,7 @@ if __name__ == '__main__':
 
 	# Omega matter, fraction of mass, and correspondingly, the dark energy fraction
 	# Note here that for Omega M, we implicitly assume Omega L = 1 - Omega M
-	Fiducial_Omega_M = 0.308000
+	Fiducial_Omega_M = 0.310000
 
 	LowerBound_OMEGA_M = 0.25
 	UpperBound_OMEGA_M = 0.35
@@ -733,7 +745,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_M'] = False
 	# Omega baryon, the baryon component
-	Fiducial_Omega_b = 0.048425
+	Fiducial_Omega_b = 0.048
 
 	LowerBound_OMEGA_b = 0.0470
 	UpperBound_OMEGA_b = 0.0490
@@ -747,7 +759,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_b'] = False
 
-	Fiducial_ns = 0.968000
+	Fiducial_ns = 0.97000
 
 	LowerBound_NS = 0.9
 	UpperBound_NS = 1.0
@@ -779,14 +791,14 @@ if __name__ == '__main__':
 
 	# All these parameters are passed to a text-file for which the 21CMMC driver can read in and use these parameters to perform any computation.
 
-          # New in v1.4 : (3) start
+        # New in v1.4 : (3) start
         Fiducial_Params['F_STAR10'] = Fiducial_Fstar10
         Fiducial_Params['ALPHA_STAR'] = Fiducial_AlphaStar
         Fiducial_Params['F_ESC10'] = Fiducial_Fesc10
         Fiducial_Params['ALPHA_ESC'] = Fiducial_AlphaEsc
         Fiducial_Params['M_TURN'] = Fiducial_Mturn
         Fiducial_Params['t_STAR'] = Fiducial_t_STAR
-          # New in v1.4 : (3) end
+        # New in v1.4 : (3) end
 
 	Fiducial_Params['ZETA'] = Fiducial_Zeta
 	Fiducial_Params['MFP'] = Fiducial_MFP
@@ -801,7 +813,8 @@ if __name__ == '__main__':
 	Fiducial_Params['X_RAY_TVIR_LB'] = X_RAY_TVIR_LB
 	Fiducial_Params['X_RAY_TVIR_UB'] = X_RAY_TVIR_UB
 
-	Fiducial_Params['F_STAR'] = Fiducial_F_STAR
+	#Fiducial_Params['t_STAR'] = Fiducial_t_STAR
+	#Fiducial_Params['F_STAR'] = Fiducial_F_STAR
 
 	Fiducial_Params['N_RSD_SUBCELLS'] = N_RSD_SUBCELLS
 	Fiducial_Params['LOS_direction'] = LOS_direction	
@@ -843,7 +856,6 @@ if __name__ == '__main__':
 	FlagOptions['CALC_TS_FLUC'] = Include_Ts_fluc
 	FlagOptions['KEEP_GLOBAL_DATA'] = USE_GLOBAL_SIGNAL
 	FlagOptions['USE_IONISATION_FCOLL_TABLE'] = USE_IONISATION_FCOLL_TABLE
-	#FlagOptions['INCLUDE_POWERLAW'] = IncludeAlpha
 	FlagOptions['USE_MASS_DEPENDENT_ZETA'] = USE_MASS_DEPENDENT_ZETA
 	FlagOptions['USE_GS_FIXED_ERROR'] = GLOBAL_SIGNAL_FIXED_ERROR
 	
@@ -909,7 +921,7 @@ if __name__ == '__main__':
 		ErrorString.append("This differs from 21cmFAST, but arises as no intermediate information is stored")
 		ErrorMessage = True
 
-	""" # New version support this option. 
+	""" # New version support this option.
 	if Include_Ts_fluc is True and param_legend['ALPHA'] is True:
 		ErrorString.append("ERROR: Current version does not support a mass-dependent ionising efficiency to be used with the full spin temperature fluctuations.")
 		ErrorMessage = True
@@ -990,7 +1002,7 @@ if __name__ == '__main__':
                     burninIterations=0,
                     sampleIterations=1,
                     filethin = 1,
-                    threadCount=1,
+                    threadCount=4,
 	                reuseBurnin=False
 	           	)
 
@@ -1024,6 +1036,5 @@ if __name__ == '__main__':
 	
 	else:
 		print 'Start sampling'
-                print param_legend
 		sampler.startSampling()            
 			

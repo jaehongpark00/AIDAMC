@@ -170,13 +170,65 @@ int main(int argc, char ** argv){
     OMb = (float)PARAM_COSMOLOGY_VALS[5];
     POWER_INDEX = (float)PARAM_COSMOLOGY_VALS[6]; //power law on the spectral index, ns
     
+    
+    
+    /////////////////   Read in the astrophysical parameter data     /////////////////
+    
+    // Determine length of parameter file to read in
+    // All available parameters to be varied in the MCMC are always listed, but are toggled on/off using 1/0
+    // The MCMC sets the toggle, this C file reads the toggle and uses/sets the parameter values appropriately
+    
+    sprintf(filename,"Walker_%1.6lf_%1.6lf.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2);
+    F = fopen(filename,"rt");
+    
+    if(!INHOMO_RECO||!USE_LIGHTCONE) {
+        redshifts = calloc(N_USER_REDSHIFT,sizeof(double));
+    }
+    
+    temp_int = 0;
+    temp_int2 = 0;
+    for(i=0;i<WALKER_FILE_LENGTH;i++) {
+        if(i==0) {
+            fscanf(F,"%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",&dummy_string,&GenerateNewICs,&SUBCELL_RSD,&USE_FCOLL_IONISATION_TABLE,&SHORTEN_FCOLL,&USE_TS_FLUCT,&INHOMO_RECO,&STORE_DATA);
+        }
+        else if (i > 0 && i <= TOTAL_AVAILABLE_PARAMS) {
+            fscanf(F,"%s\t%lf\n",&dummy_string,&PARAM_VALS[temp_int]);
+            temp_int += 1;
+        }
+        else {
+            if(!INHOMO_RECO) {
+                fscanf(F,"%s\t%lf\n",&dummy_string,&redshifts[temp_int2]);
+                temp_int2 += 1;
+            }
+            else {
+                // Since the INHOMO_RECO flag has been set, we need to take all the redshifts that are used for the Ts.c part of the calculation (in order to have the right
+                // time-steps for tracking the recombinations.
+                continue;
+            }
+        }
+    }
+    fclose(F);
+    
+    
+    // GenerateNewICs: Whether to create a new density field at each sampling (i.e. new initial conditions). Must use if the cosmology is being varied
+    // SUBCELL_RSD: Whether to include redshift space distortions along the line-of-sight (z-direction only).
+    // USE_FCOLL_IONISATION_TABLE: Whether to use an interpolation for the collapsed fraction for the find_HII_bubbles part of the computation
+    // SHORTEN_FCOLL: Whether to use an interpolation for the collapsed fraction for the Ts.c computation
+    // USE_TS_FLUCT: Whether to perform the full evolution of the IGM spin temperature, or just assume the saturated spin temperature limit
+    // INHOMO_RECO: Whether to include inhomogeneous recombinations into the calculation of the ionisation fraction
+    // STORE_DATA: Whether to output the global data for the IGM neutral fraction and average temperature brightness (used for the global signal)
+    
+    
+    
+    
+    
     // Initialise the power spectrum data, and relevant functions etc., for the entire file here (i.e. it is only done once here)
     init_ps();
     
     // If the USE_LIGHTCONE option is set, need to determing the size of the entire line-of-sight dimension for storing the slice indexes and corresponding reshifts per slice
     dR = (BOX_LEN / (double) HII_DIM) * CMperMPC; // size of cell (in comoving cm)
     
-    if(USE_LIGHTCONE) {
+    if(USE_LIGHTCONE||INHOMO_RECO) {
         // Determine the number of redshifts within the Ts.c calculation to set N_USER_REDSHIFT for the light-cone version of the computation.
         
         counter = 0;
@@ -199,50 +251,20 @@ int main(int argc, char ** argv){
         // Number of redshifts for boxes used to construct the light-cone. Light-cone ends at final redshift, final box of light-cone is the penultimate box linear interpolated to the final redshift
         N_USER_REDSHIFT_LC = counter - 1;
         
-        redshifts_LC = calloc(N_USER_REDSHIFT_LC,sizeof(double));
-        start_index_LC = calloc(N_USER_REDSHIFT_LC,sizeof(int));
-        end_index_LC = calloc(N_USER_REDSHIFT_LC,sizeof(int));
+        if(USE_LIGHTCONE) {
+            redshifts_LC = calloc(N_USER_REDSHIFT_LC,sizeof(double));
+            start_index_LC = calloc(N_USER_REDSHIFT_LC,sizeof(int));
+            end_index_LC = calloc(N_USER_REDSHIFT_LC,sizeof(int));
+        }
     }
     
     // Hard coded to 100,000. Should never excede this, unless very high resolution boxes are being used! (200^3, from z_min = 6 to z_max (z = 35) corresponds to 2232 indices).
     full_index_LC = calloc(100000,sizeof(int));
     slice_redshifts = calloc(100000,sizeof(double));
     
-    redshifts = calloc(N_USER_REDSHIFT,sizeof(double));
-    /////////////////   Read in the astrophysical parameter data     /////////////////
-    
-    // Determine length of parameter file to read in
-    // All available parameters to be varied in the MCMC are always listed, but are toggled on/off using 1/0
-    // The MCMC sets the toggle, this C file reads the toggle and uses/sets the parameter values appropriately
-    
-    sprintf(filename,"Walker_%1.6lf_%1.6lf.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2);
-    F = fopen(filename,"rt");
-    
-    temp_int = 0;
-    temp_int2 = 0;
-    for(i=0;i<WALKER_FILE_LENGTH;i++) {
-        if(i==0) {
-            fscanf(F,"%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",&dummy_string,&GenerateNewICs,&SUBCELL_RSD,&USE_FCOLL_IONISATION_TABLE,&SHORTEN_FCOLL,&USE_TS_FLUCT,&INHOMO_RECO,&STORE_DATA);
-        }
-        else if (i > 0 && i <= TOTAL_AVAILABLE_PARAMS) {
-            fscanf(F,"%s\t%lf\n",&dummy_string,&PARAM_VALS[temp_int]);
-            temp_int += 1;
-        }
-        else {
-            fscanf(F,"%s\t%lf\n",&dummy_string,&redshifts[temp_int2]);
-            temp_int2 += 1;
-        }
+    if(INHOMO_RECO||USE_LIGHTCONE) {
+        redshifts = calloc(N_USER_REDSHIFT,sizeof(double));
     }
-    fclose(F);
-    
-    
-    // GenerateNewICs: Whether to create a new density field at each sampling (i.e. new initial conditions). Must use if the cosmology is being varied
-    // SUBCELL_RSD: Whether to include redshift space distortions along the line-of-sight (z-direction only).
-    // USE_FCOLL_IONISATION_TABLE: Whether to use an interpolation for the collapsed fraction for the find_HII_bubbles part of the computation
-    // SHORTEN_FCOLL: Whether to use an interpolation for the collapsed fraction for the Ts.c computation
-    // USE_TS_FLUCT: Whether to perform the full evolution of the IGM spin temperature, or just assume the saturated spin temperature limit
-    // INHOMO_RECO: Whether to include inhomogeneous recombinations into the calculation of the ionisation fraction
-    // STORE_DATA: Whether to output the global data for the IGM neutral fraction and average temperature brightness (used for the global signal)
     
     
     // Some very rudimentary conditionals (the python script should catch them. But, add them here in the C code for testing purposes
@@ -331,7 +353,7 @@ int main(int argc, char ** argv){
     
     Stored_LOS_direction_state_1 = LOS_direction;
 
-    if(USE_LIGHTCONE) {
+    if(USE_LIGHTCONE||INHOMO_RECO) {
         
         counter = 0;
         
@@ -349,60 +371,63 @@ int main(int argc, char ** argv){
             prev_z_prime = z_prime;
             z_prime = ((1.+prev_z_prime) / ZPRIME_STEP_FACTOR - 1.);
         }
-
-        // For determining parameters for the interpolation of the boxes for the construction of the light-cone
-        // redshift_interpolate_boxes.c required redshifts in increasing order, the array redshifts is in decreasing order. Therefore just invert to leave as much code the same as possible
-        z1_LC = redshifts[N_USER_REDSHIFT-1];
         
-        z_LC = start_z = z1_LC;
-        slice_ct = 0;
-        total_slice_ct = 0;
-        num_boxes_interp = 0;
-        i = 0;
+        if(USE_LIGHTCONE) {
 
-        while(z1_LC < redshifts[0]) {
-            z2_LC = redshifts[N_USER_REDSHIFT-2-i];
-            // now do the interpolation
-            while (z_LC < z2_LC){ // until we move to the next set of boxes
-                slice_redshifts[total_slice_ct] = z_LC;
-                full_index_LC[total_slice_ct] = total_slice_ct;
-                // check if we filled-up our array and write-out
-                if (slice_ct == HII_DIM){
-                    end_z = z_LC;
-                    num_boxes_interp += 1;
+            // For determining parameters for the interpolation of the boxes for the construction of the light-cone
+            // redshift_interpolate_boxes.c required redshifts in increasing order, the array redshifts is in decreasing order. Therefore just invert to leave as much code the same as possible
+            z1_LC = redshifts[N_USER_REDSHIFT-1];
+        
+            z_LC = start_z = z1_LC;
+            slice_ct = 0;
+            total_slice_ct = 0;
+            num_boxes_interp = 0;
+            i = 0;
+
+            while(z1_LC < redshifts[0]) {
+                z2_LC = redshifts[N_USER_REDSHIFT-2-i];
+                // now do the interpolation
+                while (z_LC < z2_LC){ // until we move to the next set of boxes
+                    slice_redshifts[total_slice_ct] = z_LC;
+                    full_index_LC[total_slice_ct] = total_slice_ct;
+                    // check if we filled-up our array and write-out
+                    if (slice_ct == HII_DIM){
+                        end_z = z_LC;
+                        num_boxes_interp += 1;
                 
-                    // update quantities
-                    slice_ct=0;
-                    start_z = end_z;
+                        // update quantities
+                        slice_ct=0;
+                        start_z = end_z;
                     
-                } // we are now continuing with a new interpolation box
+                    } // we are now continuing with a new interpolation box
                 
-                slice_ct++;
-                total_slice_ct++;
-                z_LC -= dR / drdz(z_LC);
-            } // done with this pair of boxes, moving on to the next redshift pair
-            redshifts_LC[i] = z1_LC;
-            if(i==0) {
-                start_index_LC[i] = 0;
-                end_index_LC[i] = slice_ct; //This value not inclusive
+                    slice_ct++;
+                    total_slice_ct++;
+                    z_LC -= dR / drdz(z_LC);
+                } // done with this pair of boxes, moving on to the next redshift pair
+                redshifts_LC[i] = z1_LC;
+                if(i==0) {
+                    start_index_LC[i] = 0;
+                    end_index_LC[i] = slice_ct; //This value not inclusive
+                }
+                else {
+                    start_index_LC[i] = end_index_LC[i-1]; // Inclusive of this value
+                    end_index_LC[i] = slice_ct;
+                }
+                z1_LC = z2_LC;
+                i += 1;
             }
-            else {
-                start_index_LC[i] = end_index_LC[i-1]; // Inclusive of this value
-                end_index_LC[i] = slice_ct;
-            }
-            z1_LC = z2_LC;
-            i += 1;
-        }
 
-        total_num_boxes = num_boxes_interp;
-        remainder_LC = total_slice_ct - num_boxes_interp*HII_DIM;
+            total_num_boxes = num_boxes_interp;
+            remainder_LC = total_slice_ct - num_boxes_interp*HII_DIM;
         
-        final_z = z_LC;
+            final_z = z_LC;
         
-        box_z1 = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
-        box_z2 = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
-        box_interpolate = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
-        box_interpolate_remainder = (float *)calloc((float)HII_DIM*(float)HII_DIM*(float)remainder_LC,sizeof(float));
+            box_z1 = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
+            box_z2 = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
+            box_interpolate = (float *)calloc(HII_TOT_NUM_PIXELS,sizeof(float));
+            box_interpolate_remainder = (float *)calloc((float)HII_DIM*(float)HII_DIM*(float)remainder_LC,sizeof(float));
+        }
     }
     Stored_LOS_direction_state_2 = LOS_direction;
     

@@ -17,10 +17,8 @@
 
 #define X_RAY_Tvir_POINTS (int) 100
 
-#define zpp_interp_points (int) (400)      /* Number of interpolation points for the interpolation table for z'' */
-#define zpp_interp_points_SFR (int) (300)  /* Number of interpolation points for the interpolation table for z'' in the new parametrization */
-
-#define dens_Ninterp (int) (400)           /* Number of interpolation points for the interpolation table for the value of the density field */
+#define zpp_interp_points (int) (400)                  /* Number of interpolation points for the interpolation table for z'' */
+#define dens_Ninterp (int) (400)                       /* Number of interpolation points for the interpolation table for the value of the density field */
 
 
 /* Define some global variables; yeah i know it isn't "good practice" but doesn't matter */

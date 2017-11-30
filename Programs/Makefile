@@ -1,9 +1,7 @@
 # C compiler and flags
 CPPFLAGS = -I/opt/local/include
-LDFLAGS = -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
-CC      = gcc-7.1.0 -fopenmp -Ofast
-#LDFLAGS = -L/opt/local/lib -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
-#CC      = /usr/local/bin/gcc -fopenmp -Ofast
+LDFLAGS = -L/opt/local/lib -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
+CC      = /usr/local/bin/gcc -fopenmp -Ofast
 
 # Directory hosting the non-project specific code
 COSMO_DIR = ../Cosmo_c_files
@@ -49,10 +47,10 @@ drive_21cmMC_streamlined: drive_21cmMC_streamlined.c \
 
 	${CC} ${CPPFLAGS} -o drive_21cmMC_streamlined drive_21cmMC_streamlined.c ${LDFLAGS}
 
-#CreateFcollTable: CreateFcollTable.c \
-#	${COSMO_FILES} \
+CreateFcollTable: CreateFcollTable.c \
+	${COSMO_FILES} \
 
-#	${CC} ${CPPFLAGS} -o CreateFcollTable CreateFcollTable.c ${LDFLAGS}
+	${CC} ${CPPFLAGS} -o CreateFcollTable CreateFcollTable.c ${LDFLAGS}
 
 ComputingTau_e: ComputingTau_e.c \
 	${COSMO_FILES} \

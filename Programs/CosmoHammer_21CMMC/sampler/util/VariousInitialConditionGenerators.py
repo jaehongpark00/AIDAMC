@@ -52,23 +52,8 @@ class UniformPosition(object):
 
         InputValues = []
 
-        if self.sampler.param_legend['F_STAR10'] is True:   
-            InputValues.append(self.sampler.FiducialParams['F_STAR10'])
-
-        if self.sampler.param_legend['ALPHA_STAR'] is True:   
-            InputValues.append(self.sampler.FiducialParams['ALPHA_STAR'])
-
-        if self.sampler.param_legend['F_ESC10'] is True:   
-            InputValues.append(self.sampler.FiducialParams['F_ESC10'])
-
-        if self.sampler.param_legend['ALPHA_ESC'] is True:   
-            InputValues.append(self.sampler.FiducialParams['ALPHA_ESC'])
-
-        if self.sampler.param_legend['M_TURN'] is True:   
-            InputValues.append(self.sampler.FiducialParams['M_TURN'])
-
-        if self.sampler.param_legend['t_STAR'] is True:   
-            InputValues.append(self.sampler.FiducialParams['t_STAR'])
+        if self.sampler.param_legend['ALPHA'] is True:   
+            InputValues.append(self.sampler.FiducialParams['ALPHA'])
 
         if self.sampler.param_legend['ZETA'] is True:   
             InputValues.append(self.sampler.FiducialParams['ZETA'])    

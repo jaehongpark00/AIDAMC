@@ -7,7 +7,7 @@
 /* The minimum file length containing the relevant astrophysical parameters, plus related information requisite for computing the 21cm signal. This number should remain fixed,
  unless additional parameters are to be added and suitably varied. This number ** does not ** include the redshift sampling (i.e. if the co-eval box option is set. That comes
  through at the command line, where number of redshifts is provided.   */
-#define TOTAL_AVAILABLE_PARAMS (int) (20)
+#define TOTAL_AVAILABLE_PARAMS (int) (16)
 
 /* A text file containing the cosmological parameters that can be varied within 21CMMC. This number is fixed, and includes the standard 6 parameter Lambda-CDM cosmological parameters,
  and also a random initial seed for generating the initial conditions (if this option is set). Note that OMEGA_L is assumed to be 1 - OMEGA_M, therefore it is unnecessary to vary OMEGA_L */
@@ -72,7 +72,7 @@ double *Ionisation_fcoll_table, *Ionisation_fcoll_table_final;
 
 short **dens_grid_int_vals, *SingleVal_int;
 
-int NUM_BINS, CREATE_FFT_DATA_FROM_FILE,READ_FFT_DATA_FROM_FILE,SHORTEN_FCOLL,N_USER_REDSHIFT, WALKER_FILE_LENGTH, USE_LIGHTCONE,CALC_PS, USE_MASS_DEPENDENT_ZETA, USE_TS_FLUCT,INHOMO_RECO,STORE_DATA,ERFC_NUM_POINTS, erfc_arg_val_index;
+int NUM_BINS, CREATE_FFT_DATA_FROM_FILE,READ_FFT_DATA_FROM_FILE,SHORTEN_FCOLL,N_USER_REDSHIFT, WALKER_FILE_LENGTH, USE_LIGHTCONE,CALC_PS,USE_TS_FLUCT,INHOMO_RECO,STORE_DATA,ERFC_NUM_POINTS, erfc_arg_val_index;
 
 float R_MFP_MIN, R_MFP_BINWIDTH, TVIR_BINWIDTH, PL_BINWIDTH, R_MFP_VAL_1, R_MFP_VAL_2, TVIR_VAL_1, TVIR_VAL_2, ZETA_PL_VAL_1, ZETA_PL_VAL_2;
 int R_MFP_INT_1, R_MFP_INT_2, TVIR_INT_1, TVIR_INT_2, ZETA_PL_INT_1, ZETA_PL_INT_2;
@@ -88,11 +88,9 @@ float start_z, end_z;
 float k_floor, k_ceil, k_max, k_first_bin_ceil, k_factor;
 double INDIVIDUAL_ID, INDIVIDUAL_ID_2;
 
-double EFF_FACTOR_PL_INDEX, HII_EFF_FACTOR, ION_EFF_FACTOR, R_BUBBLE_MAX, ION_Tvir_MIN, L_X, NU_X_THRESH, X_RAY_SPEC_INDEX, X_RAY_Tvir_MIN, NU_X_BAND_MAX, NU_X_MAX;
+double EFF_FACTOR_PL_INDEX, HII_EFF_FACTOR, R_BUBBLE_MAX, ION_Tvir_MIN, L_X, NU_X_THRESH, X_RAY_SPEC_INDEX, X_RAY_Tvir_MIN, NU_X_BAND_MAX, NU_X_MAX;
 double BinWidth_pH,inv_BinWidth_pH,BinWidth_elec,inv_BinWidth_elec,BinWidth_10,inv_BinWidth_10, erfc_arg_min, erfc_arg_max, erfc_arg_val, ArgBinWidth, InvArgBinWidth;
 double X_RAY_Tvir_LOWERBOUND, X_RAY_Tvir_UPPERBOUND,LOG10_X_RAY_Tvir_LOWERBOUND, LOG10_X_RAY_Tvir_UPPERBOUND, INCLUDE_ZETA_PL;
-// New in v1.4
-double F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN;
 
 double F_STAR;
 float t_STAR;

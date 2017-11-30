@@ -55,7 +55,7 @@ class Likelihood21cmFast_multiz(object):
         else:
 
             # If we are applying the optical depth prior, then we might as well keep the value of the electron scattering optical depth
-            if self.PriorLegend['PlanckPrior'] is True:
+            if self.PriorLegend['PlanckPrior'] is True or self.FlagOptions['KEEP_ALL_DATA'] is True:
                 nf_vals = np.zeros(len(self.Redshift) + len(self.Redshifts_For_Prior)+3)
             else:
                 nf_vals = np.zeros(len(self.Redshift) + len(self.Redshifts_For_Prior)+2)
@@ -114,15 +114,8 @@ class Likelihood21cmFast_multiz(object):
             seq.append("%s"%(number_redshifts))
         # Add light cone flag
         seq.append("%s"%(LightConeFlag))
-        """
         # If power-law dependence on ionising efficiency is allowed. Add the flag here (support not yet included)
         if self.FlagOptions['INCLUDE_POWERLAW'] is True:
-            seq.append("1")
-        else:
-            seq.append("0")
-        """
-        # If mass-dependence on ionising efficiency is allowed. Add the flag here
-        if self.FlagOptions['USE_MASS_DEPENDENT_ZETA'] is True:
             seq.append("1")
         else:
             seq.append("0")
@@ -178,42 +171,11 @@ class Likelihood21cmFast_multiz(object):
         create_file = open("Walker_%s.txt"%(StringArgument_other),"w")
         create_file.write("FLAGS    %s    %s    %s    %s    %s    %s    %s\n"%(GenerateNewICs,Subcell_RSDs,IONISATION_FCOLL_TABLE,UseFcollTable,PerformTsCalc,INHOMO_RECO,OutputGlobalAve))
         
-        # New in v1.4
-        if self.param_legend['F_STAR10'] is True:            
-            create_file.write("F_STAR10    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+        if self.param_legend['ALPHA'] is True:            
+            create_file.write("ALPHA    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
             parameter_number += 1
         else:
-            create_file.write("F_STAR10    %s\n"%(self.Fiducial_Params['F_STAR10']))
-
-        if self.param_legend['ALPHA_STAR'] is True:            
-            create_file.write("ALPHA_STAR    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
-            parameter_number += 1
-        else:
-            create_file.write("ALPHA_STAR    %s\n"%(self.Fiducial_Params['ALPHA_STAR']))
-
-        if self.param_legend['F_ESC10'] is True:            
-            create_file.write("F_ESC10    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
-            parameter_number += 1
-        else:
-            create_file.write("F_ESC10    %s\n"%(self.Fiducial_Params['F_ESC10']))
-
-        if self.param_legend['ALPHA_ESC'] is True:            
-            create_file.write("ALPHA_ESC    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
-            parameter_number += 1
-        else:
-            create_file.write("ALPHA_ESC    %s\n"%(self.Fiducial_Params['ALPHA_ESC']))
-
-        if self.param_legend['M_TURN'] is True:            
-            create_file.write("M_TURN    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
-            parameter_number += 1
-        else:
-            create_file.write("M_TURN    %s\n"%(self.Fiducial_Params['M_TURN']))
-
-        if self.param_legend['t_STAR'] is True:            
-            create_file.write("t_STAR    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
-            parameter_number += 1
-        else:
-            create_file.write("t_STAR    %s\n"%(self.Fiducial_Params['t_STAR']))
+            create_file.write("ALPHA    %s\n"%(self.Fiducial_Params['ALPHA']))
 
         if self.param_legend['ZETA'] is True:
             create_file.write("ZETA    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
@@ -264,6 +226,7 @@ class Likelihood21cmFast_multiz(object):
         create_file.write("X_RAY_TVIR_UB    %s\n"%(self.Fiducial_Params['X_RAY_TVIR_UB']))
 
         create_file.write("F_STAR    %s\n"%(self.Fiducial_Params['F_STAR']))
+        create_file.write("t_STAR    %s\n"%(self.Fiducial_Params['t_STAR']))
 
         create_file.write("N_RSD_STEPS    %s\n"%(self.Fiducial_Params['N_RSD_SUBCELLS']))
         create_file.write("LOS_direction    %s\n"%(self.Fiducial_Params['LOS_direction']))
@@ -482,6 +445,7 @@ class Likelihood21cmFast_multiz(object):
                     total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
 
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
+
                 StoredFileLayout = string.join(StoredFileLayout,separator_column)
 
                 with open('%s/StatisticalData/TotalPSData_%s.txt'%(self.FlagOptions['KEEP_ALL_DATA_FILENAME'],StringArgument_other),'w') as f:            
@@ -490,16 +454,16 @@ class Likelihood21cmFast_multiz(object):
 
                 f.close()
 
-        if (self.PriorLegend['PlanckPrior'] is True and number_redshifts > 2) or self.PriorLegend['McGreerPrior'] is True or self.PriorLegend['GreigPrior'] is True:
+        if (self.PriorLegend['PlanckPrior'] is True and number_redshifts > 2) or self.PriorLegend['McGreerPrior'] is True or self.PriorLegend['GreigPrior'] is True or self.FlagOptions['KEEP_ALL_DATA'] is True:
 
             z_Hist = np.loadtxt('AveData_%s.txt'%(StringArgument_other), usecols=(0,))
             xH_Hist = np.loadtxt('AveData_%s.txt'%(StringArgument_other), usecols=(1,))
 
             # When the light-cone version is set, the values are writted in decreasing order, not increasing order
             # Therefore, reverse to be in increasing order (the interpolation/extrapolation is required to be in increasing order)
-            if self.IncludeLightCone is True:
+            if z_Hist[0] > z_Hist[-1]:
                 z_Hist = z_Hist[::-1]
-                xH_Hist = xH_Hist[::-1]
+                xH_Hist = xH_Hist[::-1]                            
 
         if (self.FlagOptions['KEEP_ALL_DATA'] is True or self.PriorLegend['PlanckPrior'] is True) and number_redshifts > 2:
 
@@ -709,14 +673,12 @@ class Likelihood21cmFast_multiz(object):
                     command = "rm %s"%(LightconePS[i])
                 os.system(command)
         else:
+            
+            command = "rm delTps_estimate_%s_*"%(StringArgument_other)
+            os.system(command)
 
-            for i in range(len(AllRedshifts)):
-
-                command = "rm delTps_estimate_%s_%s.txt"%(StringArgument_other,AllRedshifts[i])
-                os.system(command)
-
-                command = "rm NeutralFraction_%s_%s.txt"%(StringArgument_other,AllRedshifts[i])
-                os.system(command)
+            command = "rm NeutralFraction_%s_*"%(StringArgument_other)
+            os.system(command)
 
         if OutputGlobalAve == 1:
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
