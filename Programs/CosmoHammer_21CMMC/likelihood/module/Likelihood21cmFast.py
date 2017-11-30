@@ -114,8 +114,15 @@ class Likelihood21cmFast_multiz(object):
             seq.append("%s"%(number_redshifts))
         # Add light cone flag
         seq.append("%s"%(LightConeFlag))
+        """
         # If power-law dependence on ionising efficiency is allowed. Add the flag here (support not yet included)
         if self.FlagOptions['INCLUDE_POWERLAW'] is True:
+            seq.append("1")
+        else:
+            seq.append("0")
+        """
+	# If mass-dependence on ionising efficiency is allowed. Add the flag here
+        if self.FlagOptions['USE_MASS_DEPENDENT_ZETA'] is True:
             seq.append("1")
         else:
             seq.append("0")
@@ -171,11 +178,42 @@ class Likelihood21cmFast_multiz(object):
         create_file = open("Walker_%s.txt"%(StringArgument_other),"w")
         create_file.write("FLAGS    %s    %s    %s    %s    %s    %s    %s\n"%(GenerateNewICs,Subcell_RSDs,IONISATION_FCOLL_TABLE,UseFcollTable,PerformTsCalc,INHOMO_RECO,OutputGlobalAve))
         
-        if self.param_legend['ALPHA'] is True:            
-            create_file.write("ALPHA    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+        # New in v1.4
+        if self.param_legend['F_STAR10'] is True:    
+            create_file.write("F_STAR10    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
             parameter_number += 1
         else:
-            create_file.write("ALPHA    %s\n"%(self.Fiducial_Params['ALPHA']))
+            create_file.write("F_STAR10    %s\n"%(self.Fiducial_Params['F_STAR10']))
+
+        if self.param_legend['ALPHA_STAR'] is True:    
+            create_file.write("ALPHA_STAR    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+            parameter_number += 1
+        else:
+            create_file.write("ALPHA_STAR    %s\n"%(self.Fiducial_Params['ALPHA_STAR']))
+
+        if self.param_legend['F_ESC10'] is True:    
+            create_file.write("F_ESC10    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+            parameter_number += 1
+        else:
+            create_file.write("F_ESC10    %s\n"%(self.Fiducial_Params['F_ESC10']))
+
+        if self.param_legend['ALPHA_ESC'] is True:    
+            create_file.write("ALPHA_ESC    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+            parameter_number += 1
+        else:
+            create_file.write("ALPHA_ESC    %s\n"%(self.Fiducial_Params['ALPHA_ESC']))
+
+        if self.param_legend['M_TURN'] is True:    
+            create_file.write("M_TURN    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+            parameter_number += 1
+        else:
+            create_file.write("M_TURN    %s\n"%(self.Fiducial_Params['M_TURN']))
+
+        if self.param_legend['t_STAR'] is True:    
+            create_file.write("t_STAR    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
+            parameter_number += 1
+        else:
+            create_file.write("t_STAR    %s\n"%(self.Fiducial_Params['t_STAR']))
 
         if self.param_legend['ZETA'] is True:
             create_file.write("ZETA    %s\n"%(Decimal(repr(params[parameter_number])).quantize(SIXPLACES)))
@@ -226,7 +264,6 @@ class Likelihood21cmFast_multiz(object):
         create_file.write("X_RAY_TVIR_UB    %s\n"%(self.Fiducial_Params['X_RAY_TVIR_UB']))
 
         create_file.write("F_STAR    %s\n"%(self.Fiducial_Params['F_STAR']))
-        create_file.write("t_STAR    %s\n"%(self.Fiducial_Params['t_STAR']))
 
         create_file.write("N_RSD_STEPS    %s\n"%(self.Fiducial_Params['N_RSD_SUBCELLS']))
         create_file.write("LOS_direction    %s\n"%(self.Fiducial_Params['LOS_direction']))
@@ -445,7 +482,6 @@ class Likelihood21cmFast_multiz(object):
                     total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
 
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
-
                 StoredFileLayout = string.join(StoredFileLayout,separator_column)
 
                 with open('%s/StatisticalData/TotalPSData_%s.txt'%(self.FlagOptions['KEEP_ALL_DATA_FILENAME'],StringArgument_other),'w') as f:            
