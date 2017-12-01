@@ -30,8 +30,9 @@
 #define STELLAR_BARYON_PL (double) (0.4) //power law index w/ halo mass
 #define ESC_FRAC (double) (0.1) // defined for 10^10 Msun halos
 #define ESC_PL (double) (-0.4) //power law index w/ halo mass
-#define M_TURNOVER (double) (5e8) // Halo mass threshold for efficient star formation (in Msun).
+define M_TURNOVER (double) (5e8) // Halo mass threshold for efficient star formation (in Msun).
 */
+#define M_TURNOVER (double) (5e8) // Halo mass threshold for efficient star formation (in Msun).
 
 // A free parameter in 21CMMC, so removed the definition from here
 

@@ -134,7 +134,8 @@ int main(int argc, char ** argv){
     /****** NOTE: Need to add in a flag here, which toggles including alpha as a useable parameter ******/
     /****** In doing it here, it enables the majority of the remaining code to be relatively straight-forward (i.e. doesn't change existing text-file structure etc.) ******/
     /****** This hasn't been rigorously checked yet. Need to look into this at some point... *******/
-    INCLUDE_ZETA_PL = atof(argv[5]);
+    //INCLUDE_ZETA_PL = atof(argv[5]);
+	USE_MASS_DEPENDENT_ZETA = atof(argv[5]); // New in v1.4
     
     // Redshift for which Ts.c is evolved down to, i.e. z'
     REDSHIFT = atof(argv[6]);
@@ -279,6 +280,8 @@ int main(int argc, char ** argv){
         return 0;
     }
     
+	/*
+	In the new version support this option.
     if(USE_TS_FLUCT==1 && INCLUDE_ZETA_PL==1) {
         printf("\n");
         printf("Cannot use a non-constant ionising efficiency (zeta) in conjuction with the IGM spin temperature part of the code.\n");
@@ -289,7 +292,8 @@ int main(int argc, char ** argv){
         // Probably should do free the memory properly here...
         return 0;
     }
-    
+    */
+
     if(USE_FCOLL_IONISATION_TABLE==1 && INHOMO_RECO==1) {
         printf("\n");
         printf("Cannot use the f_coll interpolation table for find_hii_bubbles with inhomogeneous recombinations\n");
@@ -310,34 +314,55 @@ int main(int argc, char ** argv){
         // Probably should do free the memory properly here...
         return 0;
     }
+
+    if(USE_FCOLL_IONISATION_TABLE==1 && USE_MASS_DEPENDENT_ZETA==1) {
+        printf("\n");
+        printf("Current version does not support an interpolation for the collapsed fraction for the halo mass-dependent ionizing efficiency parametrization. \n");
+        printf("\n");
+        printf("Exiting...");
+        printf("\n");
+        // Probably should do free the memory properly here...
+        return 0;
+    }   
     
     
     ///////////////// Hard coded assignment of parameters, but can't do much about it (problem of merging C and Python code) //////////////////////////////////
-    EFF_FACTOR_PL_INDEX = PARAM_VALS[0];
-    HII_EFF_FACTOR = PARAM_VALS[1];
-    
+	// Constant ionizing efficiency parameter
+    HII_EFF_FACTOR = PARAM_VALS[5];
+	// New in v1.4
+    // Halo mass dependent ionizing efficiency parametrization.
+    F_STAR10 = PARAM_VALS[0];
+    ALPHA_STAR = PARAM_VALS[1];
+    F_ESC10 = PARAM_VALS[2];
+    ALPHA_ESC = PARAM_VALS[3];
+    M_TURN = pow(10.,PARAM_VALS[4]);
+   
+    // New in v1.4
+    if(USE_MASS_DEPENDENT_ZETA) ION_EFF_FACTOR = N_GAMMA_UV * F_STAR10 * F_ESC10;
+    else ION_EFF_FACTOR = HII_EFF_FACTOR;
+
     // If inhomogeneous recombinations are set, need to switch to an upper limit on the maximum bubble horizon (this is set above).
     // The default choice is chosen to be 50 Mpc, as is default in 21cmFAST.
     if(INHOMO_RECO) {
         R_BUBBLE_MAX = INHOMO_RECO_R_BUBBLE_MAX;
     }
     else {
-        R_BUBBLE_MAX = PARAM_VALS[2];
+        R_BUBBLE_MAX = PARAM_VALS[6];
     }
-    
-    ION_Tvir_MIN = pow(10.,PARAM_VALS[3]);
-    L_X = pow(10.,PARAM_VALS[4]);
-    NU_X_THRESH = PARAM_VALS[5];
-    NU_X_BAND_MAX = PARAM_VALS[6];
-    NU_X_MAX = PARAM_VALS[7];
-    X_RAY_SPEC_INDEX = PARAM_VALS[8];
-    X_RAY_Tvir_MIN = pow(10.,PARAM_VALS[9]);
-    X_RAY_Tvir_LOWERBOUND = PARAM_VALS[10];
-    X_RAY_Tvir_UPPERBOUND = PARAM_VALS[11];
-    F_STAR = PARAM_VALS[12];
-    t_STAR = PARAM_VALS[13];
-    N_RSD_STEPS = (int)PARAM_VALS[14];
-    LOS_direction = (int)PARAM_VALS[15];
+
+    ION_Tvir_MIN = pow(10.,PARAM_VALS[7]);
+    L_X = pow(10.,PARAM_VALS[8]);
+    NU_X_THRESH = PARAM_VALS[9];
+    NU_X_BAND_MAX = PARAM_VALS[10];
+    NU_X_MAX = PARAM_VALS[11];
+    X_RAY_SPEC_INDEX = PARAM_VALS[12];
+    X_RAY_Tvir_MIN = pow(10.,PARAM_VALS[13]);
+    X_RAY_Tvir_LOWERBOUND = PARAM_VALS[14];
+    X_RAY_Tvir_UPPERBOUND = PARAM_VALS[15];
+    F_STAR = PARAM_VALS[16];
+    t_STAR = PARAM_VALS[16];
+    N_RSD_STEPS = (int)PARAM_VALS[17];
+    LOS_direction = (int)PARAM_VALS[18]; 
     
     // Converts the variables from eV into the quantities that Ts.c is familiar with
     NU_X_THRESH *= NU_over_EV;
@@ -1392,6 +1417,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     
     float d1_low, d1_high, d2_low, d2_high, gradient_component, min_gradient_component, subcell_width, x_val1, x_val2, subcell_displacement;
     float RSD_pos_new, RSD_pos_new_boundary_low,RSD_pos_new_boundary_high, fraction_within, fraction_outside, cell_distance;
+	float Mlim_Fstar, Mlim_Fesc; // New in v1.4
 
     int min_slice_index,slice_index_reducedLC;
     
@@ -1553,15 +1579,14 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     cell_length_factor = L_FACTOR;
     
     //set the minimum source mass
-    if (ION_Tvir_MIN > 0){ // use the virial temperature for Mmin
-        if (ION_Tvir_MIN < 9.99999e3) // neutral IGM
-            M_MIN = TtoM(REDSHIFT_SAMPLE, ION_Tvir_MIN, 1.22);
-        else // ionized IGM
-            M_MIN = TtoM(REDSHIFT_SAMPLE, ION_Tvir_MIN, 0.6);
-    }
-    else if (ION_Tvir_MIN < 0){ // use the mass
-        M_MIN = ION_M_MIN;
-    }
+    if (USE_MASS_DEPENDENT_ZETA) {
+        M_MIN = M_TURN/50.;
+        Mlim_Fstar = Mass_limit_bisection(M_MIN, 1e16,  ALPHA_STAR, F_STAR10);
+        Mlim_Fesc = Mass_limit_bisection(M_MIN, 1e16, ALPHA_ESC, F_ESC10);
+    }    
+    else {
+        M_MIN = M_TURNOVER;
+    }    
     // check for WDM
 
     if (P_CUTOFF && ( M_MIN < M_J_WDM())){
@@ -1578,17 +1603,15 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     
     global_xH = 0.0;
     
-    MFEEDBACK = M_MIN;
-
-    if(EFF_FACTOR_PL_INDEX != 0.) {
-        mean_f_coll_st = FgtrM_st_PL(REDSHIFT_SAMPLE,M_MIN,MFEEDBACK,EFF_FACTOR_PL_INDEX);
-
+    // New in v1.4
+    if (USE_MASS_DEPENDENT_ZETA) {
+        mean_f_coll_st = FgtrM_st_SFR(REDSHIFT_SAMPLE,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
     }
     else {
-
         mean_f_coll_st = FgtrM_st(REDSHIFT_SAMPLE, M_MIN);
     }
-    if (mean_f_coll_st/(1./HII_EFF_FACTOR) < HII_ROUND_ERR){ // way too small to ionize anything...
+
+    if (mean_f_coll_st*ION_EFF_FACTOR < HII_ROUND_ERR){ // way too small to ionize anything...
 //        printf( "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n I will just declare everything to be neutral\n", mean_f_coll_st, f_coll_crit);
 
         // find the neutral fraction
@@ -1750,16 +1773,20 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             f_coll = 0;
             massofscaleR = RtoM(R);
             
-            erfc_denom = 2.*(pow(sigma_z0(M_MIN), 2) - pow(sigma_z0(massofscaleR), 2) );
-            if (erfc_denom < 0) { // our filtering scale has become too small
-                break;
-            }
-            erfc_denom = sqrt(erfc_denom);
-            erfc_denom = 1./( growth_factor * erfc_denom );
+			// New in v1.4
+			if(!USE_MASS_DEPENDENT_ZETA) {
+            	erfc_denom = 2.*(pow(sigma_z0(M_MIN), 2) - pow(sigma_z0(massofscaleR), 2) );
+            	if (erfc_denom < 0) { // our filtering scale has become too small
+                	break;
+            	}
+            	erfc_denom = sqrt(erfc_denom);
+            	erfc_denom = 1./( growth_factor * erfc_denom );
+			}
             
-            if(EFF_FACTOR_PL_INDEX!=0.) {
-                initialiseGL_Fcoll(NGLlow,NGLhigh,M_MIN,massofscaleR);
-                initialiseFcoll_spline(REDSHIFT_SAMPLE,M_MIN,massofscaleR,massofscaleR,MFEEDBACK,EFF_FACTOR_PL_INDEX);
+            // New in v1.4
+            if(USE_MASS_DEPENDENT_ZETA) {
+                initialiseGL_FcollSFR(NGL_SFR, M_TURN/50.0, massofscaleR);
+                initialiseFcollSFR_spline(REDSHIFT_SAMPLE,massofscaleR,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
             }
             
             if(!USE_FCOLL_IONISATION_TABLE) {
@@ -1788,12 +1815,14 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                 
                             curr_dens = *((float *)deltax_filtered + HII_R_FFT_INDEX(x,y,z));
                         
-                            if(EFF_FACTOR_PL_INDEX!=0.) {
+                           // New in v1.4
+                            if(USE_MASS_DEPENDENT_ZETA) {
                                 // Usage of 0.99*Deltac arises due to the fact that close to the critical density, the collapsed fraction becomes a little unstable
                                 // However, such densities should always be collapsed, so just set f_coll to unity. Additionally, the fraction of points in this regime relative
                                 // to the entire simulation volume is extremely small.
                                 if(curr_dens <= 0.99*Deltac) {
-                                    FcollSpline(curr_dens,&(Splined_Fcoll));
+                                    FcollSpline_SFR(curr_dens,&(Splined_Fcoll));
+                                    //FcollSpline(curr_dens,&(Splined_Fcoll));
                                 }
                                 else { // the entrire cell belongs to a collpased halo...  this is rare...
                                     Splined_Fcoll =  1.0;
@@ -1897,12 +1926,12 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                         curr_dens = *((float *)deltax_filtered + coeval_box_pos_FFT(Default_LOS_direction,x,y,slice_index_reducedLC));
                         
                         if(USE_FCOLL_IONISATION_TABLE) {
-                            
-                            if(EFF_FACTOR_PL_INDEX!=0.) {
+                            // New in v1.4: current version do not support to use this option for the mass dependent ionizing efficiency.
+                            if(USE_MASS_DEPENDENT_ZETA) {
                                 if(curr_dens <= 0.99*Deltac) {
                                     // This is here as the interpolation tables have some issues very close
                                     // to Deltac. So lets just assume these voxels collapse anyway.
-                                    FcollSpline(curr_dens,&(Splined_Fcoll));
+                                    FcollSpline_SFR(curr_dens,&(Splined_Fcoll));
                                     // Using the fcoll ionisation table, fcoll is not computed in each cell.
                                     // For this option, fcoll must be calculated.
                                 }
@@ -1944,7 +1973,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                         }
                         
                         // check if fully ionized!
-                        if ( (f_coll > (xHI_from_xrays/HII_EFF_FACTOR)*(1.0+rec)) ){ //IONIZED!!
+						if ( (f_coll*ION_EFF_FACTOR > xHI_from_xrays*(1.0+rec)) ){ //IONIZED!!
                             
                             // if this is the first crossing of the ionization barrier for this cell (largest R), record the gamma
                             // this assumes photon-starved growth of HII regions...  breaks down post EoR
@@ -1980,7 +2009,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                             }
                                 
                             if (f_coll>1) f_coll=1;
-                            res_xH = xHI_from_xrays - f_coll * HII_EFF_FACTOR;
+							res_xH = xHI_from_xrays - f_coll * ION_EFF_FACTOR;
                             // and make sure fraction doesn't blow up for underdense pixels
                             if (res_xH < 0)
                                 res_xH = 0;

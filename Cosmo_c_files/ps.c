@@ -87,7 +87,7 @@ static gsl_spline *FcollLow_spline;
 
 void initialiseGL_FcollSFR(int n, float M_Min, float M_Max);
 void FcollSpline_SFR(float Overdensity, float *splined_value);
-void initialiseFcollSFR_spline(float z, float Mmin, float Mmax, float MassTurnover, float Alpha_star, float Alpha_esc, float Fstar10, float Fesc10, float Mlim_Fstar, float Mlim_Fesc);
+void initialiseFcollSFR_spline(float z, float Mmax, float MassTurnover, float Alpha_star, float Alpha_esc, float Fstar10, float Fesc10, float Mlim_Fstar, float Mlim_Fesc);
 // There will be additional parameters for Ts.c
 struct parameters_gsl_SFR_int_{
     double z_obs;
@@ -187,6 +187,7 @@ double get_M_min_ion(float z){
   double MMIN;
 
   MMIN = M_TURNOVER;
+  //MMIN = M_TURN;
 
   // check for WDM
   if (P_CUTOFF && ( MMIN < M_J_WDM()))
@@ -1485,7 +1486,7 @@ double FgtrM_st_SFR(double z, double MassTurnover, double Alpha_star, double Alp
     F.function = &dFdlnM_st_SFR;
     F.params = &parameters_gsl_SFR;
     lower_limit = log(M_Min);
-    upper_limit = log(FMAX(1e16, M*100));
+    upper_limit = log(FMAX(1e16, M_Min*100));
 
     gsl_integration_qag (&F, lower_limit, upper_limit, 0, rel_tol,
                         1000, GSL_INTEG_GAUSS61, w, &result, &error);
