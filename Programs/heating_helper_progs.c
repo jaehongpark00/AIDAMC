@@ -20,6 +20,8 @@
 #define zpp_interp_points (int) (400)                  /* Number of interpolation points for the interpolation table for z'' */
 #define dens_Ninterp (int) (400)                       /* Number of interpolation points for the interpolation table for the value of the density field */
 
+//#define zpp_interp_points_SFR (int) (300)               /* Number of interpolation points for the interpolation table for z'' */
+
 
 /* Define some global variables; yeah i know it isn't "good practice" but doesn't matter */
 //double zpp_edge[NUM_FILTER_STEPS_FOR_Ts], sigma_atR[NUM_FILTER_STEPS_FOR_Ts], sigma_Tmin[NUM_FILTER_STEPS_FOR_Ts], ST_over_PS[NUM_FILTER_STEPS_FOR_Ts], sum_lyn[NUM_FILTER_STEPS_FOR_Ts];
@@ -34,6 +36,13 @@ int n_redshifts_1DTable;
 double zbin_width_1DTable,zmin_1DTable,zmax_1DTable,zbin_width_1DTable;
 
 double *FgtrM_1DTable_linear;
+
+// New in v1.4
+float *second_derivs_Fcoll_zpp[NUM_FILTER_STEPS_FOR_Ts];
+float *redshift_interp_table;
+gsl_interp_accel *FcollLow_zpp_spline_acc[NUM_FILTER_STEPS_FOR_Ts];
+gsl_spline *FcollLow_zpp_spline[NUM_FILTER_STEPS_FOR_Ts];
+
 
 /* initialization routine */
 int init_heat();
@@ -400,7 +409,7 @@ void evolveInt(float zp, float curr_delNL0[], double freq_int_heat[], double fre
         dxion_source_dt *= const_zp_prefactor;
         if (COMPUTE_Ts){
             dxlya_dt *= const_zp_prefactor*n_b;
-            dstarlya_dt *= F_STAR * C * N_b0 / FOURPI;
+            dstarlya_dt *= F_STAR10 * C * N_b0 / FOURPI;
 
             /*
              if ((dxlya_dt < 0) || (dstarlya_dt<0)){

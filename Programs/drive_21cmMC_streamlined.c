@@ -359,7 +359,7 @@ int main(int argc, char ** argv){
     X_RAY_Tvir_MIN = pow(10.,PARAM_VALS[13]);
     X_RAY_Tvir_LOWERBOUND = PARAM_VALS[14];
     X_RAY_Tvir_UPPERBOUND = PARAM_VALS[15];
-    F_STAR = PARAM_VALS[16];
+    //F_STAR = PARAM_VALS[16];
     t_STAR = PARAM_VALS[16];
     N_RSD_STEPS = (int)PARAM_VALS[17];
     LOS_direction = (int)PARAM_VALS[18]; 
@@ -674,6 +674,9 @@ void ComputeTsBoxes() {
     
     int Tvir_min_int,Numzp_for_table,counter;
     double X_RAY_Tvir_BinWidth;
+	// New in v1.4
+	int arr_num;
+	float Splined_Fcoll,Splined_Fcollzp_mean,Splined_Fcollzpp_X_mean,zp_table,fcoll;
     
     X_RAY_Tvir_BinWidth = (X_RAY_Tvir_UPPERBOUND - X_RAY_Tvir_LOWERBOUND)/( (double)X_RAY_Tvir_POINTS - 1. );
     
@@ -721,13 +724,19 @@ void ComputeTsBoxes() {
     growth_factor_z = dicke(REDSHIFT);
     inverse_growth_factor_z = 1./growth_factor_z;
     
-    if (X_RAY_Tvir_MIN < 9.99999e3) // neutral IGM
+    /*if (X_RAY_Tvir_MIN < 9.99999e3) // neutral IGM
         mu_for_Ts = 1.22;
     else // ionized IGM
-        mu_for_Ts = 0.6;
+        mu_for_Ts = 0.6;*/
     
     //set the minimum ionizing source mass
-    M_MIN_at_z = get_M_min_ion(REDSHIFT);
+    // In v1.4 the miinimum ionizing source mass does not depend on redshift.
+    // For the constant ionizing efficiency parameter, M_MIN is set to be M_TURN which is a sharp cut-off.
+    // For the new parametrization, the number of halos hosting active galaxies (i.e. the duty cycle) is assumed to
+    // exponentially decrease below M_TURNOVER Msun, : fduty \propto e^(- M_TURNOVER / M)
+    // In this case, we define M_MIN = M_TURN/50, i.e. the M_MIN is integration limit to compute follapse fraction.
+    //M_MIN_at_z = get_M_min_ion(REDSHIFT);
+    if (!USE_MASS_DEPENDENT_ZETA) M_MIN = M_TURN;
     
     // Initialize some interpolation tables
     init_heat();
@@ -746,7 +755,13 @@ void ComputeTsBoxes() {
         F = fopen(filename, "rb");
         
         // open output
-        sprintf(filename, "../Boxes/Ts_z%06.2f_zetaX%.1e_alphaX%.1f_TvirminX%.1e_zetaIon%.2f_Pop%i_%i_%.0fMpc", REDSHIFT, HII_EFF_FACTOR, X_RAY_SPEC_INDEX, X_RAY_Tvir_MIN, R_BUBBLE_MAX, Pop, HII_DIM, BOX_LEN);
+		// New in v1.4
+        if (USE_MASS_DEPENDENT_ZETA) {
+        sprintf(filename, "../Boxes/Ts_z%06.2f_L_X%.1e_alphaX%.1f_f_star%06.4f_alpha_star%06.4f_MturnX%.1e_t_star%06.4f_Pop%i_%i_%.0fMpc", REDSHIFT, L_X, X_RAY_SPEC_INDEX, F_STAR10, ALPHA_STAR, M_TURN, t_STAR, Pop, HII_DIM, BOX_LEN);
+        }
+        else {
+        sprintf(filename, "../Boxes/Ts_z%06.2f_L_X%.1e_alphaX%.1f_MminX%.1e_zetaIon%.2f_Pop%i_%i_%.0fMpc", REDSHIFT, L_X, X_RAY_SPEC_INDEX, M_MIN, HII_EFF_FACTOR, Pop, HII_DIM, BOX_LEN);
+        }
         
         // read file
         for (i=0; i<HII_DIM; i++){
@@ -830,7 +845,9 @@ void ComputeTsBoxes() {
         for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
 
             R_values[R_ct] = R;
-            sigma_atR[R_ct] = sigma_z0(RtoM(R));
+			// New in v1.4: in the new parametrization, this function is not used to compute collapse fraction.
+            if (!USE_MASS_DEPENDENT_ZETA) sigma_atR[R_ct] = sigma_z0(RtoM(R));
+            //sigma_atR[R_ct] = sigma_z0(RtoM(R));
         
             // copy over unfiltered box
             memcpy(box, unfiltered_box, sizeof(fftwf_complex)*HII_KSPACE_NUM_PIXELS);
@@ -842,8 +859,11 @@ void ComputeTsBoxes() {
             plan = fftwf_plan_dft_c2r_3d(HII_DIM, HII_DIM, HII_DIM, (fftwf_complex *)box, (float *)box, FFTW_ESTIMATE);
             fftwf_execute(plan);
             
-            min_density = 0.0;
-            max_density = 0.0;
+			// New in v1.4
+			if (!USE_MASS_DEPENDENT_ZETA) {
+            	min_density = 0.0;
+            	max_density = 0.0;
+			}
 
             // copy over the values
             for (i=HII_DIM; i--;){
@@ -860,29 +880,33 @@ void ComputeTsBoxes() {
                             
                         delNL0_rev[HII_R_INDEX(i,j,k)][R_ct] = curr_delNL0;
                             
-                        if(curr_delNL0 < min_density) {
-                            min_density = curr_delNL0;
-                        }
-                        if(curr_delNL0 > max_density) {
-                            max_density = curr_delNL0;
-                        }
+						if(!USE_MASS_DEPENDENT_ZETA) {
+                        	if(curr_delNL0 < min_density) {
+                            	min_density = curr_delNL0;
+                        	}
+                        	if(curr_delNL0 > max_density) {
+                            	max_density = curr_delNL0;
+                        	}
+						}
                     }
                 }
             }
-            if(min_density < 0.0) {
-                delNL0_LL[R_ct] = min_density*1.001;
-                delNL0_Offset[R_ct] = 1.e-6 - (delNL0_LL[R_ct]);
-            }
-            else {
-                delNL0_LL[R_ct] = min_density*0.999;
-                delNL0_Offset[R_ct] = 1.e-6 + (delNL0_LL[R_ct]);
-            }
-            if(max_density < 0.0) {
-                delNL0_UL[R_ct] = max_density*0.999;
-            }
-            else {
-                delNL0_UL[R_ct] = max_density*1.001;
-            }
+			if(!USE_MASS_DEPENDENT_ZETA) {
+            	if(min_density < 0.0) {
+                	delNL0_LL[R_ct] = min_density*1.001;
+                	delNL0_Offset[R_ct] = 1.e-6 - (delNL0_LL[R_ct]);
+            	}
+            	else {
+                	delNL0_LL[R_ct] = min_density*0.999;
+                	delNL0_Offset[R_ct] = 1.e-6 + (delNL0_LL[R_ct]);
+            	}
+           		if(max_density < 0.0) {
+                	delNL0_UL[R_ct] = max_density*0.999;
+            	}
+            	else {
+                	delNL0_UL[R_ct] = max_density*1.001;
+            	}
+			}
     
             R *= R_factor;
                 
@@ -903,8 +927,12 @@ void ComputeTsBoxes() {
     
         // main trapezoidal integral over z' (see eq. ? in Mesinger et al. 2009)
         zp = REDSHIFT*1.0001; //higher for rounding
-        while (zp < Z_HEAT_MAX)
+		// New in v1.4: count the number of zp steps
+		Nsteps_zp = 0;
+        while (zp < Z_HEAT_MAX) {
+			Nsteps_zp += 1;
             zp = ((1+zp)*ZPRIME_STEP_FACTOR - 1);
+		}
         prev_zp = Z_HEAT_MAX;
         zp = ((1+zp)/ ZPRIME_STEP_FACTOR - 1);
         dzp = zp - prev_zp;
@@ -931,89 +959,158 @@ void ComputeTsBoxes() {
 
         
         // An interpolation table for f_coll (delta vs redshift)
-        init_FcollTable(determine_zpp_min,determine_zpp_max);
-    
-        zpp_bin_width = (determine_zpp_max - determine_zpp_min)/((float)zpp_interp_points-1.0);
-    
-        dens_width = 1./((double)dens_Ninterp - 1.);
-        
-        // Determine the sampling of the density values, for the various interpolation tables
-        for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
-            log10delNL0_diff_UL[ii] = log10( delNL0_UL[ii] + delNL0_Offset[ii] );
-            log10delNL0_diff[ii] = log10( delNL0_LL[ii] + delNL0_Offset[ii] );
-            delNL0_bw[ii] = ( log10delNL0_diff_UL[ii] - log10delNL0_diff[ii] )*dens_width;
-            delNL0_ibw[ii] = 1./delNL0_bw[ii];
-        }
-        
-        // Gridding the density values for the interpolation tables
-        for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
-            for(j=0;j<dens_Ninterp;j++) {
-                grid_dens[ii][j] = log10delNL0_diff[ii] + ( log10delNL0_diff_UL[ii] - log10delNL0_diff[ii] )*dens_width*(double)j;
-                grid_dens[ii][j] = pow(10,grid_dens[ii][j]) - delNL0_Offset[ii];
+        if (USE_MASS_DEPENDENT_ZETA) {
+            zpp_bin_width = (determine_zpp_max - determine_zpp_min)/((float)zpp_interp_points_SFR-1.0);
+
+            // generates an interpolation table for redshift
+            for (i=0; i<zpp_interp_points_SFR;i++) {
+                //zpp_interp_table[i] = determine_zpp_min + (determine_zpp_max - determine_zpp_min)*(float)i/((float)zpp_interp_points_SFR-1.0);
+                zpp_interp_table[i] = determine_zpp_min + zpp_bin_width*(float)i;
             }
-        }
-        
-        // Calculate the sigma_z and Fgtr_M values for each point in the interpolation table
-        for(i=0;i<zpp_interp_points;i++) {
-            zpp_grid = determine_zpp_min + (determine_zpp_max - determine_zpp_min)*(float)i/((float)zpp_interp_points-1.0);
-        
-            Sigma_Tmin_grid[i] = sigma_z0(FMAX(TtoM(zpp_grid, X_RAY_Tvir_MIN, mu_for_Ts),  M_MIN_WDM));
-            ST_over_PS_arg_grid[i] = FgtrM_st(zpp_grid, FMAX(TtoM(zpp_grid, X_RAY_Tvir_MIN, mu_for_Ts),  M_MIN_WDM));
-        }
-        
-        // Create the interpolation tables for the derivative of the collapsed fraction and the collapse fraction itself
-        for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
-            for(i=0;i<zpp_interp_points;i++) {
+            /* initialise interpolation of the mean collapse fraction for global reionization.*/
+            initialise_FgtrM_st_SFR_spline(zpp_interp_points_SFR,determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, ALPHA_ESC, F_STAR10, F_ESC10);
+            /* initialise interpolation of the mean collapse fraction with respect to the X-ray heating.*/
+            initialise_Xray_FgtrM_st_SFR_spline(zpp_interp_points_SFR,determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, F_STAR10);
+    		// initialise redshift table corresponding to all the redshifts to initialise interpolation for the conditional mass function.
+    		zp_table = zp;
+    		counter = 0;
+    		for (i=0; i<Nsteps_zp; i++) {
+      			for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
+          			if (R_ct==0){
+              			prev_zpp = zp_table;
+              			prev_R = 0;
+          			}
+          			else{
+              			prev_zpp = zpp_edge[R_ct-1];
+              			prev_R = R_values[R_ct-1];
+          			}
+          		zpp_edge[R_ct] = prev_zpp - (R_values[R_ct] - prev_R)*CMperMPC / drdz(prev_zpp); // cell size
+          		zpp = (zpp_edge[R_ct]+prev_zpp)*0.5; // average redshift value of shell: z'' + 0.5 * dz''
+          		redshift_interp_table[counter] = zpp;
+          		counter += 1;
+      		}
+      		prev_zp = zp_table;
+      		zp_table = ((1+prev_zp) / ZPRIME_STEP_FACTOR - 1);
+    		}
 
-                zpp_grid = determine_zpp_min + (determine_zpp_max - determine_zpp_min)*(float)i/((float)zpp_interp_points-1.0);
-                grid_sigmaTmin = Sigma_Tmin_grid[i];
+    		/* generate a table for interpolation of the collapse fraction with respect to the X-ray heating, as functions of 
+    		filtering scale, redshift and overdensity.
+       		Note that at a given zp, zpp values depends on the filtering scale R, i.e. f_coll(z(R),delta).
+       		Compute the conditional mass function, but assume f_{esc10} = 1 and \alpha_{esc} = 0. */
+    		initialise_Xray_Fcollz_SFR_Conditional_table(Nsteps_zp,NUM_FILTER_STEPS_FOR_Ts,redshift_interp_table,R_values, M_TURN, ALPHA_STAR, F_STAR10);
+        }
+		else {
+        	init_FcollTable(determine_zpp_min,determine_zpp_max);
+        	zpp_bin_width = (determine_zpp_max - determine_zpp_min)/((float)zpp_interp_points-1.0);
+        	dens_width = 1./((double)dens_Ninterp - 1.);
+        
+        	// Determine the sampling of the density values, for the various interpolation tables
+        	for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
+            	log10delNL0_diff_UL[ii] = log10( delNL0_UL[ii] + delNL0_Offset[ii] );
+            	log10delNL0_diff[ii] = log10( delNL0_LL[ii] + delNL0_Offset[ii] );
+            	delNL0_bw[ii] = ( log10delNL0_diff_UL[ii] - log10delNL0_diff[ii] )*dens_width;
+            	delNL0_ibw[ii] = 1./delNL0_bw[ii];
+        	}
+        
+        	// Gridding the density values for the interpolation tables
+        	for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
+            	for(j=0;j<dens_Ninterp;j++) {
+                	grid_dens[ii][j] = log10delNL0_diff[ii] + ( log10delNL0_diff_UL[ii] - log10delNL0_diff[ii] )*dens_width*(double)j;
+                	grid_dens[ii][j] = pow(10,grid_dens[ii][j]) - delNL0_Offset[ii];
+            	}
+        	}
+        
+        	// Calculate the sigma_z and Fgtr_M values for each point in the interpolation table
+        	for(i=0;i<zpp_interp_points;i++) {
+            	zpp_grid = determine_zpp_min + (determine_zpp_max - determine_zpp_min)*(float)i/((float)zpp_interp_points-1.0);
+        
+            	//Sigma_Tmin_grid[i] = sigma_z0(FMAX(TtoM(zpp_grid, X_RAY_Tvir_MIN, mu_for_Ts),  M_MIN_WDM));
+            	//ST_over_PS_arg_grid[i] = FgtrM_st(zpp_grid, FMAX(TtoM(zpp_grid, X_RAY_Tvir_MIN, mu_for_Ts),  M_MIN_WDM));
+				// New in v1.4: halo mass does not depend on Tvir
+            	Sigma_Tmin_grid[i] = sigma_z0(M_MIN);
+            	ST_over_PS_arg_grid[i] = FgtrM_st(zpp_grid, M_MIN);
+        	}
+        
+        	// Create the interpolation tables for the derivative of the collapsed fraction and the collapse fraction itself
+        	for(ii=0;ii<NUM_FILTER_STEPS_FOR_Ts;ii++) {
+            	for(i=0;i<zpp_interp_points;i++) {
 
-                for(j=0;j<dens_Ninterp;j++) {
+                	zpp_grid = determine_zpp_min + (determine_zpp_max - determine_zpp_min)*(float)i/((float)zpp_interp_points-1.0);
+                	grid_sigmaTmin = Sigma_Tmin_grid[i];
+
+                	for(j=0;j<dens_Ninterp;j++) {
                 
-                    grid_dens_val = grid_dens[ii][j];
-                    if(!SHORTEN_FCOLL) {
-                        fcoll_R_grid[ii][i][j] = sigmaparam_FgtrM_bias(zpp_grid, grid_sigmaTmin, grid_dens_val, sigma_atR[ii]);
-                    }
-                    dfcoll_dz_grid[ii][i][j] = dfcoll_dz(zpp_grid, grid_sigmaTmin, grid_dens_val, sigma_atR[ii]);
-                }
-            }
-        }
+                    	grid_dens_val = grid_dens[ii][j];
+                    	if(!SHORTEN_FCOLL) {
+                        	fcoll_R_grid[ii][i][j] = sigmaparam_FgtrM_bias(zpp_grid, grid_sigmaTmin, grid_dens_val, sigma_atR[ii]);
+                    	}
+                    	dfcoll_dz_grid[ii][i][j] = dfcoll_dz(zpp_grid, grid_sigmaTmin, grid_dens_val, sigma_atR[ii]);
+                	}
+            	}
+       		}
 
-        // Determine the grid point locations for solving the interpolation tables
-        for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
-            for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
-                SingleVal_int[R_ct] = (short)floor( ( log10(delNL0_rev[box_ct][R_ct] + delNL0_Offset[R_ct]) - log10delNL0_diff[R_ct] )*delNL0_ibw[R_ct]);
-            }
-            memcpy(dens_grid_int_vals[box_ct],SingleVal_int,sizeof(short)*NUM_FILTER_STEPS_FOR_Ts);
-        }
+        	// Determine the grid point locations for solving the interpolation tables
+        	for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
+            	for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
+                	SingleVal_int[R_ct] = (short)floor( ( log10(delNL0_rev[box_ct][R_ct] + delNL0_Offset[R_ct]) - log10delNL0_diff[R_ct] )*delNL0_ibw[R_ct]);
+            	}
+            	memcpy(dens_grid_int_vals[box_ct],SingleVal_int,sizeof(short)*NUM_FILTER_STEPS_FOR_Ts);
+        	}
     
-        // Evaluating the interpolated density field points (for using the interpolation tables for fcoll and dfcoll_dz)
-        for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
-            OffsetValue = delNL0_Offset[R_ct];
-            DensityValueLow = delNL0_LL[R_ct];
-            delNL0_bw_val = delNL0_bw[R_ct];
+        	// Evaluating the interpolated density field points (for using the interpolation tables for fcoll and dfcoll_dz)
+        	for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
+            	OffsetValue = delNL0_Offset[R_ct];
+            	DensityValueLow = delNL0_LL[R_ct];
+            	delNL0_bw_val = delNL0_bw[R_ct];
             
-            for(i=0;i<dens_Ninterp;i++) {
-                density_gridpoints[i][R_ct] = pow(10.,( log10( DensityValueLow + OffsetValue) + delNL0_bw_val*((float)i) )) - OffsetValue;
-            }
-        }
-        
+            	for(i=0;i<dens_Ninterp;i++) {
+                	density_gridpoints[i][R_ct] = pow(10.,( log10( DensityValueLow + OffsetValue) + delNL0_bw_val*((float)i) )) - OffsetValue;
+            	}
+        	}
+        } 
+
         counter = 0;
         
         // This is the main loop for calculating the IGM spin temperature. Structure drastically different from Ts.c in 21cmFAST, however algorithm and computation remain the same.
         while (zp > REDSHIFT){
+
+            // New in v1.4: initialise interpolation of fcoll over zpp and overdensity.
+    		if (USE_MASS_DEPENDENT_ZETA) {
+      			arr_num = NUM_FILTER_STEPS_FOR_Ts*counter; // New
+      			for (i=0; i<NUM_FILTER_STEPS_FOR_Ts; i++) {
+        			gsl_spline_init(FcollLow_zpp_spline[i], log10_overdense_low_table, log10_Fcollz_SFR_low_table[arr_num + i], NSFR_low);
+        			spline(Overdense_high_table-1,Fcollz_SFR_high_table[arr_num + i]-1,NSFR_high,0,0,second_derivs_Fcoll_zpp[i]-1);  
+      			}      
+    		} 
+
             // check if we will next compute the spin temperature (i.e. if this is the final zp step)
             if (Ts_verbose || (((1+zp) / ZPRIME_STEP_FACTOR) < (REDSHIFT+1)) )
                 COMPUTE_Ts = 1;
         
             // check if we are in the really high z regime before the first stars..
-            if (FgtrM(zp, FMAX(TtoM(zp, X_RAY_Tvir_MIN, mu_for_Ts),  M_MIN_WDM)) < 1e-15 )
-                NO_LIGHT = 1;
-            else
-                NO_LIGHT = 0;
+			// New in v1.4
+    		if (USE_MASS_DEPENDENT_ZETA) { // New in v1.4
+      			FgtrM_st_SFR_z(zp,&(Splined_Fcollzp_mean));
+      			if ( Splined_Fcollzp_mean < 1e-15 )
+        			NO_LIGHT = 1; 
+      			else 
+        			NO_LIGHT = 0; 
+    			}    
+    		else {
+      			if (FgtrM(zp, M_MIN) < 1e-15 )
+        			NO_LIGHT = 1; 
+      			else 
+        			NO_LIGHT = 0; 
+    		}    
         
-            M_MIN_at_zp = get_M_min_ion(zp);
-            filling_factor_of_HI_zp = 1 - HII_EFF_FACTOR * FgtrM_st(zp, M_MIN_at_zp) / (1.0 - x_e_ave);
+			// New in v1.4
+            //M_MIN_at_zp = get_M_min_ion(zp);
+			if (USE_MASS_DEPENDENT_ZETA) {
+				filling_factor_of_HI_zp = 1 - ION_EFF_FACTOR * Splined_Fcollzp_mean / (1.0 - x_e_ave);
+			}
+			else {
+            	filling_factor_of_HI_zp = 1 - ION_EFF_FACTOR * FgtrM_st(zp, M_MIN) / (1.0 - x_e_ave);
+			}
             if (filling_factor_of_HI_zp > 1) filling_factor_of_HI_zp=1;
         
             // let's initialize an array of redshifts (z'') corresponding to the
@@ -1029,26 +1126,10 @@ void ComputeTsBoxes() {
                     prev_zpp = zpp_edge[R_ct-1];
                     prev_R = R_values[R_ct-1];
                 }
-            
                 zpp_edge[R_ct] = prev_zpp - (R_values[R_ct] - prev_R)*CMperMPC / drdz(prev_zpp); // cell size
                 zpp = (zpp_edge[R_ct]+prev_zpp)*0.5; // average redshift value of shell: z'' + 0.5 * dz''
-            
-                // Determining values for the evaluating the interpolation table
-                zpp_gridpoint1_int = (int)floor((zpp - determine_zpp_min)/zpp_bin_width);
-                zpp_gridpoint2_int = zpp_gridpoint1_int + 1;
-            
-                zpp_gridpoint1 = determine_zpp_min + zpp_bin_width*(float)zpp_gridpoint1_int;
-                zpp_gridpoint2 = determine_zpp_min + zpp_bin_width*(float)zpp_gridpoint2_int;
-            
-                grad1 = ( zpp_gridpoint2 - zpp )/( zpp_gridpoint2 - zpp_gridpoint1 );
-                grad2 = ( zpp - zpp_gridpoint1 )/( zpp_gridpoint2 - zpp_gridpoint1 );
-            
-                sigma_Tmin[R_ct] = Sigma_Tmin_grid[zpp_gridpoint1_int] + grad2*( Sigma_Tmin_grid[zpp_gridpoint2_int] - Sigma_Tmin_grid[zpp_gridpoint1_int] );
-            
-                // let's now normalize the total collapse fraction so that the mean is the
-                // Sheth-Torman collapse fraction
-            
                 zpp_for_evolve_list[R_ct] = zpp;
+
                 if (R_ct==0){
                     dzpp_for_evolve = zp - zpp_edge[0];
                 }
@@ -1056,26 +1137,61 @@ void ComputeTsBoxes() {
                     dzpp_for_evolve = zpp_edge[R_ct-1] - zpp_edge[R_ct];
                 }
                 zpp_growth[R_ct] = dicke(zpp);
-            
-                // Evaluating the interpolation table for the collapse fraction and its derivative
-                for(i=0;i<(dens_Ninterp-1);i++) {
-                    dens_grad = 1./( density_gridpoints[i+1][R_ct] - density_gridpoints[i][R_ct] );
-                
-                    if(!SHORTEN_FCOLL) {
-                        fcoll_interp1[i][R_ct] = ( ( fcoll_R_grid[R_ct][zpp_gridpoint1_int][i] )*grad1 + ( fcoll_R_grid[R_ct][zpp_gridpoint2_int][i] )*grad2 )*dens_grad;
-                        fcoll_interp2[i][R_ct] = ( ( fcoll_R_grid[R_ct][zpp_gridpoint1_int][i+1] )*grad1 + ( fcoll_R_grid[R_ct][zpp_gridpoint2_int][i+1] )*grad2 )*dens_grad;
-                    }
 
-                    dfcoll_interp1[i][R_ct] = ( ( dfcoll_dz_grid[R_ct][zpp_gridpoint1_int][i] )*grad1 + ( dfcoll_dz_grid[R_ct][zpp_gridpoint2_int][i] )*grad2 )*dens_grad;
-                    dfcoll_interp2[i][R_ct] = ( ( dfcoll_dz_grid[R_ct][zpp_gridpoint1_int][i+1] )*grad1 + ( dfcoll_dz_grid[R_ct][zpp_gridpoint2_int][i+1] )*grad2 )*dens_grad;
-                }                            
-                
                 fcoll_R_array[R_ct] = 0.0;
+
+           		if (USE_MASS_DEPENDENT_ZETA) { 
+                	// Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
+					FgtrM_st_SFR_X_z(zpp,&(Splined_Fcollzpp_X_mean));
+                	ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
+                	ST_over_PS[R_ct] *= Splined_Fcollzpp_X_mean;
+				}
+           		else { 
             
-                // Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
-                ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
-                ST_over_PS[R_ct] *= ( ST_over_PS_arg_grid[zpp_gridpoint1_int] + grad2*( ST_over_PS_arg_grid[zpp_gridpoint2_int] - ST_over_PS_arg_grid[zpp_gridpoint1_int] ) );
+                	// Determining values for the evaluating the interpolation table
+                	zpp_gridpoint1_int = (int)floor((zpp - determine_zpp_min)/zpp_bin_width);
+                	zpp_gridpoint2_int = zpp_gridpoint1_int + 1;
+            
+                	zpp_gridpoint1 = determine_zpp_min + zpp_bin_width*(float)zpp_gridpoint1_int;
+                	zpp_gridpoint2 = determine_zpp_min + zpp_bin_width*(float)zpp_gridpoint2_int;
+            
+                	grad1 = ( zpp_gridpoint2 - zpp )/( zpp_gridpoint2 - zpp_gridpoint1 );
+                	grad2 = ( zpp - zpp_gridpoint1 )/( zpp_gridpoint2 - zpp_gridpoint1 );
+            
+                	sigma_Tmin[R_ct] = Sigma_Tmin_grid[zpp_gridpoint1_int] + grad2*( Sigma_Tmin_grid[zpp_gridpoint2_int] - Sigma_Tmin_grid[zpp_gridpoint1_int] );
+            
+                	// let's now normalize the total collapse fraction so that the mean is the
+                	// Sheth-Torman collapse fraction
+            
+                	/*zpp_for_evolve_list[R_ct] = zpp;
+                	if (R_ct==0){
+                    	dzpp_for_evolve = zp - zpp_edge[0];
+                	}
+                	else{
+                    	dzpp_for_evolve = zpp_edge[R_ct-1] - zpp_edge[R_ct];
+                	}
+                	zpp_growth[R_ct] = dicke(zpp);*/
+            
+                	// Evaluating the interpolation table for the collapse fraction and its derivative
+                	for(i=0;i<(dens_Ninterp-1);i++) {
+                    	dens_grad = 1./( density_gridpoints[i+1][R_ct] - density_gridpoints[i][R_ct] );
                 
+                    	if(!SHORTEN_FCOLL) {
+                        	fcoll_interp1[i][R_ct] = ( ( fcoll_R_grid[R_ct][zpp_gridpoint1_int][i] )*grad1 + ( fcoll_R_grid[R_ct][zpp_gridpoint2_int][i] )*grad2 )*dens_grad;
+                        	fcoll_interp2[i][R_ct] = ( ( fcoll_R_grid[R_ct][zpp_gridpoint1_int][i+1] )*grad1 + ( fcoll_R_grid[R_ct][zpp_gridpoint2_int][i+1] )*grad2 )*dens_grad;
+                    	}
+
+                    	dfcoll_interp1[i][R_ct] = ( ( dfcoll_dz_grid[R_ct][zpp_gridpoint1_int][i] )*grad1 + ( dfcoll_dz_grid[R_ct][zpp_gridpoint2_int][i] )*grad2 )*dens_grad;
+                    	dfcoll_interp2[i][R_ct] = ( ( dfcoll_dz_grid[R_ct][zpp_gridpoint1_int][i+1] )*grad1 + ( dfcoll_dz_grid[R_ct][zpp_gridpoint2_int][i+1] )*grad2 )*dens_grad;
+                	}                            
+                
+                	//fcoll_R_array[R_ct] = 0.0;
+            
+                	// Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
+                	ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
+                	ST_over_PS[R_ct] *= ( ST_over_PS_arg_grid[zpp_gridpoint1_int] + grad2*( ST_over_PS_arg_grid[zpp_gridpoint2_int] - ST_over_PS_arg_grid[zpp_gridpoint1_int] ) );
+                }
+
                 lower_int_limit = FMAX(nu_tau_one_approx(zp, zpp, x_e_ave, filling_factor_of_HI_zp), NU_X_THRESH);
             
                 if (filling_factor_of_HI_zp < 0) filling_factor_of_HI_zp = 0; // for global evol; nu_tau_one above treats negative (post_reionization) inferred filling factors properly
@@ -1103,23 +1219,65 @@ void ComputeTsBoxes() {
             
             // Can speed up computation (~20%) by pre-sampling the fcoll field as a function of X_RAY_TVIR_MIN (performed by calling CreateFcollTable.
             // Can be helpful when HII_DIM > ~128, otherwise its easier to just do the full box
-            if(SHORTEN_FCOLL) {
-                for(R_ct=0;R_ct<NUM_FILTER_STEPS_FOR_Ts;R_ct++) {
-                    fcoll_R = Fcoll_R_Table[counter][Tvir_min_int][R_ct] + ( log10(X_RAY_Tvir_MIN) - ( X_RAY_Tvir_LOWERBOUND + (double)Tvir_min_int*X_RAY_Tvir_BinWidth ) )*( Fcoll_R_Table[counter][Tvir_min_int+1][R_ct] - Fcoll_R_Table[counter][Tvir_min_int][R_ct] )/X_RAY_Tvir_BinWidth;
-                    
-                    ST_over_PS[R_ct] = ST_over_PS[R_ct]/fcoll_R;
-                }
-            }
-            else {
+			// NOTE: pre-sampling the fcoll field does not support the new parametrization in v1.4.
+
+			// New in v1.4
+			if(USE_MASS_DEPENDENT_ZETA) {
                 for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
-                        fcoll_R_array[R_ct] += ( fcoll_interp1[dens_grid_int_vals[box_ct][R_ct]][R_ct]*( density_gridpoints[dens_grid_int_vals[box_ct][R_ct] + 1][R_ct] - delNL0_rev[box_ct][R_ct] ) + fcoll_interp2[dens_grid_int_vals[box_ct][R_ct]][R_ct]*( delNL0_rev[box_ct][R_ct] - density_gridpoints[dens_grid_int_vals[box_ct][R_ct]][R_ct] ) );
+      					growth_zpp = dicke(zpp_for_evolve_list[R_ct]);
+      					//---------- interpolation for fcoll starts ----------
+      					if (delNL0_rev[box_ct][R_ct]*growth_zpp < 1.5){
+        					if (delNL0_rev[box_ct][R_ct]*growth_zpp < -1.) {
+          						fcoll = 0;
+        					}      
+        					else { 
+          						fcoll = gsl_spline_eval(FcollLow_zpp_spline[R_ct], log10(delNL0_rev[box_ct][R_ct]*growth_zpp+1.), FcollLow_zpp_spline_acc[R_ct]);
+          						fcoll = pow(10., fcoll);
+        					}      
+      					}      
+      					else { 
+        					if (delNL0_rev[box_ct][R_ct]*growth_zpp < 0.99*Deltac) {
+          					// Usage of 0.99*Deltac arises due to the fact that close to the critical density, the collapsed fraction becomes a little unstable
+          					// However, such densities should always be collapsed, so just set f_coll to unity. 
+          					// Additionally, the fraction of points in this regime relative to the entire simulation volume is extremely small.
+          					//New
+          					splint(Overdense_high_table-1,Fcollz_SFR_high_table[R_ct]-1,second_derivs_Fcoll_zpp[R_ct]-1,NSFR_high,delNL0_rev[box_ct][R_ct]*growth_zpp,&(fcoll));      
+        					}      
+        					else {
+          						fcoll = 1.;
+        					}    
+      					}        
+      					//Splined_Fcoll = fcoll;
+      					//---------- interpolation for fcoll is done ----------
+      					fcoll_R_array[R_ct] += fcoll;
+
                     }
                 }
                 for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
-                    ST_over_PS[R_ct] = ST_over_PS[R_ct]/(fcoll_R_array[R_ct]/(double)HII_TOT_NUM_PIXELS);
+                    ST_over_PS[R_ct] = ST_over_PS[R_ct]/(fcoll_R/(double)HII_TOT_NUM_PIXELS);
                 }
-            }
+
+			}
+			else {
+            	if(SHORTEN_FCOLL) {
+                	for(R_ct=0;R_ct<NUM_FILTER_STEPS_FOR_Ts;R_ct++) {
+                    	fcoll_R = Fcoll_R_Table[counter][Tvir_min_int][R_ct] + ( log10(X_RAY_Tvir_MIN) - ( X_RAY_Tvir_LOWERBOUND + (double)Tvir_min_int*X_RAY_Tvir_BinWidth ) )*( Fcoll_R_Table[counter][Tvir_min_int+1][R_ct] - Fcoll_R_Table[counter][Tvir_min_int][R_ct] )/X_RAY_Tvir_BinWidth;
+                    
+                    	ST_over_PS[R_ct] = ST_over_PS[R_ct]/fcoll_R;
+                	}
+            	}
+            	else {
+                	for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
+                    	for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
+                        	fcoll_R_array[R_ct] += ( fcoll_interp1[dens_grid_int_vals[box_ct][R_ct]][R_ct]*( density_gridpoints[dens_grid_int_vals[box_ct][R_ct] + 1][R_ct] - delNL0_rev[box_ct][R_ct] ) + fcoll_interp2[dens_grid_int_vals[box_ct][R_ct]][R_ct]*( delNL0_rev[box_ct][R_ct] - density_gridpoints[dens_grid_int_vals[box_ct][R_ct]][R_ct] ) );
+                    	}
+                	}
+                	for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
+                    	ST_over_PS[R_ct] = ST_over_PS[R_ct]/(fcoll_R_array[R_ct]/(double)HII_TOT_NUM_PIXELS);
+                	}
+            	}
+			}
             // scroll through each cell and update the temperature and residual ionization fraction
             growth_factor_zp = dicke(zp);
             dgrowth_factor_dzp = ddicke_dz(zp);
@@ -1140,7 +1298,7 @@ void ComputeTsBoxes() {
             Luminosity_converstion_factor *= (3.1556226e7)/(hplank);
             
             // Leave the original 21cmFAST code for reference. Refer to Greig & Mesinger (2017) for the new parameterisation.
-            const_zp_prefactor = ( L_X * Luminosity_converstion_factor ) / NU_X_THRESH * C * F_STAR * OMb * RHOcrit * pow(CMperMPC, -3) * pow(1+zp, X_RAY_SPEC_INDEX+3);
+            const_zp_prefactor = ( L_X * Luminosity_converstion_factor ) / NU_X_THRESH * C * F_STAR10 * OMb * RHOcrit * pow(CMperMPC, -3) * pow(1+zp, X_RAY_SPEC_INDEX+3);
 //          This line below is kept purely for reference w.r.t to the original 21cmFAST
 //            const_zp_prefactor = ZETA_X * X_RAY_SPEC_INDEX / NU_X_THRESH * C * F_STAR * OMb * RHOcrit * pow(CMperMPC, -3) * pow(1+zp, X_RAY_SPEC_INDEX+3);
             
@@ -1165,7 +1323,7 @@ void ComputeTsBoxes() {
             dcomp_dzp_prefactor = (-1.51e-4)/(hubble(zp)/Ho)/hlittle*pow(Trad_fast,4.0)/(1.0+zp);
         
             prefactor_1 = N_b0 * pow(1+zp, 3);
-            prefactor_2 = F_STAR * C * N_b0 / FOURPI;
+            prefactor_2 = F_STAR10 * C * N_b0 / FOURPI;
         
             x_e_ave = 0; Tk_ave = 0; Ts_ave = 0;
 
@@ -1217,9 +1375,40 @@ void ComputeTsBoxes() {
                 if (!NO_LIGHT){
                     // Now determine all the differentials for the heating/ionisation rate equations
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
-                        
-                        dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*( dfcoll_interp1[dens_grid_int_vals[box_ct][R_ct]][R_ct]*(density_gridpoints[dens_grid_int_vals[box_ct][R_ct] + 1][R_ct] - delNL0_rev[box_ct][R_ct]) + dfcoll_interp2[dens_grid_int_vals[box_ct][R_ct]][R_ct]*(delNL0_rev[box_ct][R_ct] - density_gridpoints[dens_grid_int_vals[box_ct][R_ct]][R_ct]) );
-                    
+                        if (USE_MASS_DEPENDENT_ZETA) {
+      						growth_zpp = dicke(zpp_for_evolve_list[R_ct]);
+      						//---------- interpolation for fcoll starts ----------
+      						if (delNL0_rev[box_ct][R_ct]*growth_zpp < 1.5){
+        						if (delNL0_rev[box_ct][R_ct]*growth_zpp < -1.) {
+          							fcoll = 0;
+        						}      
+        						else { 
+          							fcoll = gsl_spline_eval(FcollLow_zpp_spline[R_ct], log10(delNL0_rev[box_ct][R_ct]*growth_zpp+1.), FcollLow_zpp_spline_acc[R_ct]);
+          							fcoll = pow(10., fcoll);
+        						}      
+      						}      
+      						else { 
+        						if (delNL0_rev[box_ct][R_ct]*growth_zpp < 0.99*Deltac) {
+          						// Usage of 0.99*Deltac arises due to the fact that close to the critical density, the collapsed fraction becomes a little unstable
+          						// However, such densities should always be collapsed, so just set f_coll to unity. 
+          						// Additionally, the fraction of points in this regime relative to the entire simulation volume is extremely small.
+          						//New
+          						splint(Overdense_high_table-1,Fcollz_SFR_high_table[R_ct]-1,second_derivs_Fcoll_zpp[R_ct]-1,NSFR_high,delNL0_rev[box_ct][R_ct]*growth_zpp,&(fcoll));      
+        						}      
+        						else {
+          							fcoll = 1.;
+        						}    
+      						}        
+							/* Instead of dfcoll/dz we compute fcoll/(t_STAR*H(z)^-1)*(dt/dz), 
+        					where t_STAR is the typical star-formation timescale, in units of the Hubble time.
+        					This is the same parameter with 't_STAR' (defined in ANAL_PARAMS.H).
+        					If turn the new parametrization on, this is a free parameter.
+        					*/
+      						dfcoll_dz_val = ST_over_PS[R_ct]*(double)fcoll*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
+						}
+						else { 
+                        	dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*( dfcoll_interp1[dens_grid_int_vals[box_ct][R_ct]][R_ct]*(density_gridpoints[dens_grid_int_vals[box_ct][R_ct] + 1][R_ct] - delNL0_rev[box_ct][R_ct]) + dfcoll_interp2[dens_grid_int_vals[box_ct][R_ct]][R_ct]*(delNL0_rev[box_ct][R_ct] - density_gridpoints[dens_grid_int_vals[box_ct][R_ct]][R_ct]) );
+                   		} 
                         dxheat_dt += dfcoll_dz_val * ( (freq_int_heat_tbl_diff[m_xHII_low][R_ct])*inverse_val + freq_int_heat_tbl[m_xHII_low][R_ct] );
                         dxion_source_dt += dfcoll_dz_val * ( (freq_int_ion_tbl_diff[m_xHII_low][R_ct])*inverse_val + freq_int_ion_tbl[m_xHII_low][R_ct] );
                         
@@ -3735,48 +3924,114 @@ void init_21cmMC_Ts_arrays() {
     
     zpp_growth = (float *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     
-    fcoll_R_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
-    dfcoll_dz_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
-    for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
-        fcoll_R_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
-        dfcoll_dz_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
+	if (USE_MASS_DEPENDENT_ZETA) {
+    	for (i=0; i < NUM_FILTER_STEPS_FOR_Ts; i++){
+      	FcollLow_zpp_spline_acc[i] = gsl_interp_accel_alloc ();
+      	FcollLow_zpp_spline[i] = gsl_spline_alloc (gsl_interp_cspline, NSFR_low);
+
+      	second_derivs_Fcoll_zpp[i] = calloc(NSFR_high,sizeof(float));
+    	}
+
+    	xi_SFR = calloc((NGL_SFR+1),sizeof(float));
+    	wi_SFR = calloc((NGL_SFR+1),sizeof(float));
+
+    	zpp_interp_table = calloc(zpp_interp_points_SFR, sizeof(float));
+
+    	redshift_interp_table = calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp, sizeof(float)); // New
+
+    	log10_overdense_low_table = calloc(NSFR_low,sizeof(double));
+    	log10_Fcollz_SFR_low_table = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp,sizeof(double *)); //New
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp;i++){  // New
+            log10_Fcollz_SFR_low_table[i] = (double *)calloc(NSFR_low,sizeof(double));
+    	}
+
+    	Overdense_high_table = calloc(NSFR_high,sizeof(float));
+    	Fcollz_SFR_high_table = (float **)calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp,sizeof(float *)); //New
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp;i++){  // New
+            Fcollz_SFR_high_table[i] = (float *)calloc(NSFR_high,sizeof(float));
+    	}
+
+	}
+	else {
+    	fcoll_R_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
+    	dfcoll_dz_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
+
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
+        	fcoll_R_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
+        	dfcoll_dz_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
+		}
         for(j=0;j<zpp_interp_points;j++) {
             fcoll_R_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
             dfcoll_dz_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
         }
+
+    	grid_dens = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double *));
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
+        	grid_dens[i] = (double *)calloc(dens_Ninterp,sizeof(double));
+    	}
+
+    	density_gridpoints = (double **)calloc(dens_Ninterp,sizeof(double *));
+    	for(i=0;i<dens_Ninterp;i++) {
+        	density_gridpoints[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    	}
+    	ST_over_PS_arg_grid = (double *)calloc(zpp_interp_points,sizeof(double));
+
+    	dens_grid_int_vals = (short **)calloc(HII_TOT_NUM_PIXELS,sizeof(short *));
+    	for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
+        	dens_grid_int_vals[i] = (short *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(short));
+    	}
+
+    	fcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    	fcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    	dfcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    	dfcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    	for(i=0;i<dens_Ninterp;i++) {
+        	fcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+        	fcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+        	dfcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+        	dfcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    	}
+
+    	delNL0_bw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	delNL0_Offset = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	delNL0_LL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	delNL0_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	delNL0_ibw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	log10delNL0_diff = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    	log10delNL0_diff_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     }
     
     fcoll_R_array = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
     Sigma_Tmin_grid = (double *)calloc(zpp_interp_points,sizeof(double));
 
-    grid_dens = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double *));
-    for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
-        grid_dens[i] = (double *)calloc(dens_Ninterp,sizeof(double));
-    }
+    //grid_dens = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double *));
+    //for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
+    //    grid_dens[i] = (double *)calloc(dens_Ninterp,sizeof(double));
+    //}
     
-    density_gridpoints = (double **)calloc(dens_Ninterp,sizeof(double *));
-    for(i=0;i<dens_Ninterp;i++) {
-        density_gridpoints[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
-    }
-    ST_over_PS_arg_grid = (double *)calloc(zpp_interp_points,sizeof(double));
+    //density_gridpoints = (double **)calloc(dens_Ninterp,sizeof(double *));
+    //for(i=0;i<dens_Ninterp;i++) {
+    //    density_gridpoints[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    //}
+    //ST_over_PS_arg_grid = (double *)calloc(zpp_interp_points,sizeof(double));
     
-    dens_grid_int_vals = (short **)calloc(HII_TOT_NUM_PIXELS,sizeof(short *));
+    //dens_grid_int_vals = (short **)calloc(HII_TOT_NUM_PIXELS,sizeof(short *));
     delNL0_rev = (float **)calloc(HII_TOT_NUM_PIXELS,sizeof(float *));
     for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
-        dens_grid_int_vals[i] = (short *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(short));
+        //dens_grid_int_vals[i] = (short *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(short));
         delNL0_rev[i] = (float *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     }
     
-    fcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
-    fcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
-    dfcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
-    dfcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
-    for(i=0;i<dens_Ninterp;i++) {
-        fcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
-        fcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
-        dfcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
-        dfcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
-    }
+    //fcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    //fcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    //dfcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    //dfcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
+    //for(i=0;i<dens_Ninterp;i++) {
+    //    fcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    //    fcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    //    dfcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    //    dfcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
+    //}
     
     zpp_edge = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
     sigma_atR = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
@@ -3788,13 +4043,13 @@ void init_21cmMC_Ts_arrays() {
     R_values = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     SingleVal_float = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     
-    delNL0_bw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    delNL0_Offset = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    delNL0_LL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    delNL0_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    delNL0_ibw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    log10delNL0_diff = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-    log10delNL0_diff_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //delNL0_bw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //delNL0_Offset = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //delNL0_LL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //delNL0_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //delNL0_ibw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //log10delNL0_diff = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    //log10delNL0_diff_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     
     freq_int_heat_tbl = (double **)calloc(x_int_NXHII,sizeof(double *));
     freq_int_ion_tbl = (double **)calloc(x_int_NXHII,sizeof(double *));
@@ -3871,34 +4126,88 @@ void destroy_21cmMC_Ts_arrays() {
     
     free(Tk_box); free(x_e_box); free(Ts);
     
-    for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
-        for(j=0;j<zpp_interp_points;j++) {
-            free(fcoll_R_grid[i][j]);
-            free(dfcoll_dz_grid[i][j]);
-        }
-        free(fcoll_R_grid[i]);
-        free(dfcoll_dz_grid[i]);
-    }
-    free(fcoll_R_grid);
-    free(dfcoll_dz_grid);
+	if (USE_MASS_DEPENDENT_ZETA) {
+	    free(xi_SFR);
+    	free(wi_SFR);
+
+    	free(zpp_interp_table);
+    	free(redshift_interp_table);
+
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp;i++) {
+        	free(log10_Fcollz_SFR_low_table[i]);
+    	}
+    	free(log10_Fcollz_SFR_low_table);
+
+    	free(log10_overdense_low_table);
+
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp;i++) {
+        	free(Fcollz_SFR_high_table[i]);
+    	}
+    	free(Fcollz_SFR_high_table);
+
+    	free(Overdense_high_table);
+
+    	for (i=0; i < NUM_FILTER_STEPS_FOR_Ts; i++){
+      		gsl_spline_free (FcollLow_zpp_spline[i]);
+      		gsl_interp_accel_free (FcollLow_zpp_spline_acc[i]);
+      		free(second_derivs_Fcoll_zpp[i]);
+    	}
+	}
+	else {
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
+        	for(j=0;j<zpp_interp_points;j++) {
+            	free(fcoll_R_grid[i][j]);
+            	free(dfcoll_dz_grid[i][j]);
+        	}
+        	free(fcoll_R_grid[i]);
+        	free(dfcoll_dz_grid[i]);
+    	}
+    	free(fcoll_R_grid);
+    	free(dfcoll_dz_grid);
     
-    for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
-        free(grid_dens[i]);
-    }
-    free(grid_dens);
+    	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
+        	free(grid_dens[i]);
+    	}
+    	free(grid_dens);
     
-    for(i=0;i<dens_Ninterp;i++) {
-        free(density_gridpoints[i]);
-    }
-    free(density_gridpoints);
+    	for(i=0;i<dens_Ninterp;i++) {
+        	free(density_gridpoints[i]);
+    	}
+    	free(density_gridpoints);
     
-    free(ST_over_PS_arg_grid);
-    free(Sigma_Tmin_grid);
+    	free(ST_over_PS_arg_grid);
+    	free(Sigma_Tmin_grid);
+
+    	for(i=0;i<dens_Ninterp;i++) {
+        	free(fcoll_interp1[i]);
+        	free(fcoll_interp2[i]);
+        	free(dfcoll_interp1[i]);
+        	free(dfcoll_interp2[i]);
+    	}
+    	free(fcoll_interp1);
+    	free(fcoll_interp2);
+    	free(dfcoll_interp1);
+    	free(dfcoll_interp2);
+
+    	for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
+        	free(dens_grid_int_vals[i]);
+    	}
+    	free(dens_grid_int_vals);
+
+    	free(delNL0_bw);
+    	free(delNL0_Offset);
+    	free(delNL0_LL);
+    	free(delNL0_UL);
+    	free(delNL0_ibw);
+    	free(log10delNL0_diff);
+    	free(log10delNL0_diff_UL);
+	}
+
     free(fcoll_R_array);
     free(zpp_growth);
     free(inverse_diff);
     
-    for(i=0;i<dens_Ninterp;i++) {
+    /*for(i=0;i<dens_Ninterp;i++) {
         free(fcoll_interp1[i]);
         free(fcoll_interp2[i]);
         free(dfcoll_interp1[i]);
@@ -3907,27 +4216,27 @@ void destroy_21cmMC_Ts_arrays() {
     free(fcoll_interp1);
     free(fcoll_interp2);
     free(dfcoll_interp1);
-    free(dfcoll_interp2);
+    free(dfcoll_interp2); */
     
     for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
-        free(dens_grid_int_vals[i]);
+        //free(dens_grid_int_vals[i]);
         free(delNL0_rev[i]);
     }
-    free(dens_grid_int_vals);
+    //free(dens_grid_int_vals);
     free(delNL0_rev);
     
-    free(delNL0_bw);
+    //free(delNL0_bw);
     free(zpp_for_evolve_list);
     free(R_values);
-    free(delNL0_Offset);
-    free(delNL0_LL);
-    free(delNL0_UL);
+    //free(delNL0_Offset);
+    //free(delNL0_LL);
+    //free(delNL0_UL);
     free(SingleVal_int);
     free(SingleVal_float);
     free(dstarlya_dt_prefactor);
-    free(delNL0_ibw);
-    free(log10delNL0_diff);
-    free(log10delNL0_diff_UL);
+    //free(delNL0_ibw);
+    //free(log10delNL0_diff);
+    //free(log10delNL0_diff_UL);
 
     free(zpp_edge);
     free(sigma_atR);

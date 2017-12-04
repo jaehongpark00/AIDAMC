@@ -92,9 +92,13 @@ double EFF_FACTOR_PL_INDEX, HII_EFF_FACTOR, ION_EFF_FACTOR, R_BUBBLE_MAX, ION_Tv
 double BinWidth_pH,inv_BinWidth_pH,BinWidth_elec,inv_BinWidth_elec,BinWidth_10,inv_BinWidth_10, erfc_arg_min, erfc_arg_max, erfc_arg_val, ArgBinWidth, InvArgBinWidth;
 double X_RAY_Tvir_LOWERBOUND, X_RAY_Tvir_UPPERBOUND,LOG10_X_RAY_Tvir_LOWERBOUND, LOG10_X_RAY_Tvir_UPPERBOUND, INCLUDE_ZETA_PL;
 // New in v1.4
-double F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN;
+int Nsteps_zp;
+float growth_zpp;
+float *zpp_interp_table;
+double F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, M_MIN;
 
-double F_STAR;
+
+//double F_STAR;
 float t_STAR;
 
 unsigned long long RANDOM_SEED;
