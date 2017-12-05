@@ -38,7 +38,7 @@ if __name__ == '__main__':
 	# Whether or not one wants the inital conditions to be varied within the MCMC (needs to be True if one wants to jointly sample the cosmological parameters)
 	#### NOTE ####
 	# If this is set to true, none of the interpolation tables can be used as they are valid only for a single set of initial conditions.
-	GenerateNewICs = False
+	GenerateNewICs = True
 
 	# Create the list of cosmological values to vary. Parameter names entered here must match the naming convention below, otherwise they will not be detected and thus varied
 	# Fiducial values and parameter bounds for the cosmological parameters can be changed below
@@ -778,7 +778,7 @@ if __name__ == '__main__':
 	# Star-formation time-scale as a fraction of the Hubble time
 	Fiducial_t_STAR = 0.5
 	# The fraction of baryons converted to stars
-	Fiducial_F_STAR = 0.05
+	#Fiducial_F_STAR = 0.05
 
 
 

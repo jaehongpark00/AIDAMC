@@ -153,7 +153,6 @@ int main(int argc, char ** argv){
     double *PARAM_VALS = calloc(TOTAL_AVAILABLE_PARAMS,sizeof(double));
     
     /////////////////   Read in the cosmological parameter data     /////////////////
-   
     sprintf(filename,"WalkerCosmology_%1.6lf_%1.6lf.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2);
     F = fopen(filename,"rt");
     
@@ -740,6 +739,7 @@ void ComputeTsBoxes() {
     
     // Initialize some interpolation tables
     init_heat();
+	printf("z = %.4f, z_max = %.4f\n",REDSHIFT, Z_HEAT_MAX);
     
     // check if we are in the really high z regime before the first stars; if so, simple
     if (REDSHIFT > Z_HEAT_MAX){
@@ -928,11 +928,14 @@ void ComputeTsBoxes() {
         // main trapezoidal integral over z' (see eq. ? in Mesinger et al. 2009)
         zp = REDSHIFT*1.0001; //higher for rounding
 		// New in v1.4: count the number of zp steps
-		Nsteps_zp = 0;
+		//Nsteps_zp = 0;
         while (zp < Z_HEAT_MAX) {
-			Nsteps_zp += 1;
+			//Nsteps_zp += 1;
             zp = ((1+zp)*ZPRIME_STEP_FACTOR - 1);
+			//printf("i = %d, zp = %.4f\n",Nsteps_zp,zp);
+
 		}
+		//printf("Nsteps_zp = %d\n",Nsteps_zp);
         prev_zp = Z_HEAT_MAX;
         zp = ((1+zp)/ ZPRIME_STEP_FACTOR - 1);
         dzp = zp - prev_zp;
@@ -954,6 +957,7 @@ void ComputeTsBoxes() {
         }
     
         determine_zpp_max = zpp*1.001;
+		printf("zpp_min = %.4f, zpp_max = %.4f\n",determine_zpp_min,determine_zpp_max);
     
         ////////////////////////////    Create and fill interpolation tables to be used by Ts.c   /////////////////////////////
 
@@ -968,9 +972,9 @@ void ComputeTsBoxes() {
                 zpp_interp_table[i] = determine_zpp_min + zpp_bin_width*(float)i;
             }
             /* initialise interpolation of the mean collapse fraction for global reionization.*/
-            initialise_FgtrM_st_SFR_spline(zpp_interp_points_SFR,determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, ALPHA_ESC, F_STAR10, F_ESC10);
+            initialise_FgtrM_st_SFR_spline(zpp_interp_points_SFR, determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, ALPHA_ESC, F_STAR10, F_ESC10);
             /* initialise interpolation of the mean collapse fraction with respect to the X-ray heating.*/
-            initialise_Xray_FgtrM_st_SFR_spline(zpp_interp_points_SFR,determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, F_STAR10);
+            initialise_Xray_FgtrM_st_SFR_spline(zpp_interp_points_SFR, determine_zpp_min, determine_zpp_max, M_TURN, ALPHA_STAR, F_STAR10);
     		// initialise redshift table corresponding to all the redshifts to initialise interpolation for the conditional mass function.
     		zp_table = zp;
     		counter = 0;
@@ -988,7 +992,7 @@ void ComputeTsBoxes() {
           		zpp = (zpp_edge[R_ct]+prev_zpp)*0.5; // average redshift value of shell: z'' + 0.5 * dz''
           		redshift_interp_table[counter] = zpp;
           		counter += 1;
-      		}
+      			}
       		prev_zp = zp_table;
       		zp_table = ((1+prev_zp) / ZPRIME_STEP_FACTOR - 1);
     		}
@@ -997,7 +1001,8 @@ void ComputeTsBoxes() {
     		filtering scale, redshift and overdensity.
        		Note that at a given zp, zpp values depends on the filtering scale R, i.e. f_coll(z(R),delta).
        		Compute the conditional mass function, but assume f_{esc10} = 1 and \alpha_{esc} = 0. */
-    		initialise_Xray_Fcollz_SFR_Conditional_table(Nsteps_zp,NUM_FILTER_STEPS_FOR_Ts,redshift_interp_table,R_values, M_TURN, ALPHA_STAR, F_STAR10);
+    		//initialise_Xray_Fcollz_SFR_Conditional_table(Nsteps_zp,NUM_FILTER_STEPS_FOR_Ts,redshift_interp_table,R_values, M_TURN, ALPHA_STAR, F_STAR10);
+    		initialise_Xray_Fcollz_SFR_Conditional_table(NUM_FILTER_STEPS_FOR_Ts,redshift_interp_table,R_values, M_TURN, ALPHA_STAR, F_STAR10);
         }
 		else {
         	init_FcollTable(determine_zpp_min,determine_zpp_max);
@@ -1077,6 +1082,7 @@ void ComputeTsBoxes() {
             // New in v1.4: initialise interpolation of fcoll over zpp and overdensity.
     		if (USE_MASS_DEPENDENT_ZETA) {
       			arr_num = NUM_FILTER_STEPS_FOR_Ts*counter; // New
+				printf("arr_num = %d\n", arr_num);
       			for (i=0; i<NUM_FILTER_STEPS_FOR_Ts; i++) {
         			gsl_spline_init(FcollLow_zpp_spline[i], log10_overdense_low_table, log10_Fcollz_SFR_low_table[arr_num + i], NSFR_low);
         			spline(Overdense_high_table-1,Fcollz_SFR_high_table[arr_num + i]-1,NSFR_high,0,0,second_derivs_Fcoll_zpp[i]-1);  
@@ -1191,7 +1197,7 @@ void ComputeTsBoxes() {
                 	ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
                 	ST_over_PS[R_ct] *= ( ST_over_PS_arg_grid[zpp_gridpoint1_int] + grad2*( ST_over_PS_arg_grid[zpp_gridpoint2_int] - ST_over_PS_arg_grid[zpp_gridpoint1_int] ) );
                 }
-
+				
                 lower_int_limit = FMAX(nu_tau_one_approx(zp, zpp, x_e_ave, filling_factor_of_HI_zp), NU_X_THRESH);
             
                 if (filling_factor_of_HI_zp < 0) filling_factor_of_HI_zp = 0; // for global evol; nu_tau_one above treats negative (post_reionization) inferred filling factors properly
@@ -1226,6 +1232,7 @@ void ComputeTsBoxes() {
                 for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
       					growth_zpp = dicke(zpp_for_evolve_list[R_ct]);
+						//printf("box_ct = %d, R_ct = %d\n",box_ct, R_ct);
       					//---------- interpolation for fcoll starts ----------
       					if (delNL0_rev[box_ct][R_ct]*growth_zpp < 1.5){
         					if (delNL0_rev[box_ct][R_ct]*growth_zpp < -1.) {
@@ -1255,7 +1262,7 @@ void ComputeTsBoxes() {
                     }
                 }
                 for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
-                    ST_over_PS[R_ct] = ST_over_PS[R_ct]/(fcoll_R/(double)HII_TOT_NUM_PIXELS);
+                    ST_over_PS[R_ct] = ST_over_PS[R_ct]/(fcoll_R_array[R_ct]/(double)HII_TOT_NUM_PIXELS);
                 }
 
 			}
@@ -1514,25 +1521,32 @@ void ComputeTsBoxes() {
                 }
                 x_e_ave += x_e;
             }
+			printf("Here 22\n");
             // For this redshift snapshot, we now determine the ionisation field and subsequently the 21cm brightness temperature map (also the 21cm PS)
             // Note the relatively small tolerance for zp and the input redshift. The user needs to be careful to provide the correct redshifts for evaluating this to high precision.
             // If the light-cone option is set, this criterion should automatically be met
             for(i_z=0;i_z<N_USER_REDSHIFT;i_z++) {
+				printf("i_z = %d, z = %.4f, zp = %.4f\n",i_z,redshifts[i_z],zp);
                 if(fabs(redshifts[i_z] - zp)<0.001) {
                         
                     memcpy(Ts_z,Ts,sizeof(float)*HII_TOT_NUM_PIXELS);
                     memcpy(x_e_z,x_e_box,sizeof(float)*HII_TOT_NUM_PIXELS);
                     
                     if(i_z==0) {
+						printf("i_z==0 Compute HII\n");
                         // If in here, it doesn't matter what PREV_REDSHIFT is set to
                         // as the recombinations will not be calculated
                         ComputeIonisationBoxes(i_z,redshifts[i_z],redshifts[i_z]+0.2);
+						printf("i_z==0 Compute HII End \n");
                     }
                     else {
+						printf("Compute HII\n");
                         ComputeIonisationBoxes(i_z,redshifts[i_z],redshifts[i_z-1]);
+						printf("Compute HII End\n");
                     }
                 }
             }
+			printf("Here 23\n");
  
             /////////////////////////////  END LOOP ////////////////////////////////////////////
         
@@ -1556,18 +1570,25 @@ void ComputeTsBoxes() {
             
             counter += 1;
         } // end main integral loop over z'
+		printf("Here 24\n");
         
         destroy_21cmMC_Ts_arrays();
         destruct_heat();
+		if(USE_MASS_DEPENDENT_ZETA) free_interpolation();
+		printf("Here 25\n");
     }
     
-    for(i=0;i<Numzp_for_table;i++) {
-        for(j=0;j<X_RAY_Tvir_POINTS;j++) {
-            free(Fcoll_R_Table[i][j]);
-        }
-        free(Fcoll_R_Table[i]);
-    }
-    free(Fcoll_R_Table);
+	printf("Here 26\n");
+	if(!USE_MASS_DEPENDENT_ZETA) {
+    	for(i=0;i<Numzp_for_table;i++) {
+        	for(j=0;j<X_RAY_Tvir_POINTS;j++) {
+            	free(Fcoll_R_Table[i][j]);
+        	}
+        	free(Fcoll_R_Table[i]);
+    	}
+    	free(Fcoll_R_Table);
+	}
+	printf("Here 27\n");
 }
 
 void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_REDSHIFT) {
@@ -3939,11 +3960,12 @@ void init_21cmMC_Ts_arrays() {
 
     	redshift_interp_table = calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp, sizeof(float)); // New
 
+		// Nsteps_zp depends on ZPRIME_STEP_FACTOR. If ZPRIME_STEP_FACTOR is changed Nsteps_zp must be changed.
     	log10_overdense_low_table = calloc(NSFR_low,sizeof(double));
     	log10_Fcollz_SFR_low_table = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp,sizeof(double *)); //New
     	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp;i++){  // New
             log10_Fcollz_SFR_low_table[i] = (double *)calloc(NSFR_low,sizeof(double));
-    	}
+    	} 
 
     	Overdense_high_table = calloc(NSFR_high,sizeof(float));
     	Fcollz_SFR_high_table = (float **)calloc(NUM_FILTER_STEPS_FOR_Ts*Nsteps_zp,sizeof(float *)); //New

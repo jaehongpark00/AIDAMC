@@ -263,7 +263,7 @@ class Likelihood21cmFast_multiz(object):
         create_file.write("X_RAY_TVIR_LB    %s\n"%(self.Fiducial_Params['X_RAY_TVIR_LB']))
         create_file.write("X_RAY_TVIR_UB    %s\n"%(self.Fiducial_Params['X_RAY_TVIR_UB']))
 
-        create_file.write("F_STAR    %s\n"%(self.Fiducial_Params['F_STAR']))
+        #create_file.write("F_STAR    %s\n"%(self.Fiducial_Params['F_STAR']))
 
         create_file.write("N_RSD_STEPS    %s\n"%(self.Fiducial_Params['N_RSD_SUBCELLS']))
         create_file.write("LOS_direction    %s\n"%(self.Fiducial_Params['LOS_direction']))
