@@ -765,6 +765,7 @@ double tauX_approx(double nu, double x_e, double zp, double zpp, double HI_filli
 		if(USE_MASS_DEPENDENT_ZETA) {
 			FgtrM_st_SFR_z(zp,&(Splined_Fcollz_mean));
 			fcoll = Splined_Fcollz_mean;
+			if (isnan(fcoll)) printf("In tauX_approx: zp=%.4f, fcoll=%.4e\n",zp,fcoll);
 		}
 		else {
 //        fcoll = FgtrM(zp, M_MIN_at_zp);
@@ -835,7 +836,8 @@ double nu_tau_one_approx(double zp, double zpp, double x_e, double HI_filling_fa
     
     // check if too ionized
     if (x_e > 0.9999){
-//        fprintf(stderr,"Ts.c: WARNING: x_e value is too close to 1 for convergence in nu_tau_one\n");
+		// Below is test line. After test comment out this line
+        fprintf(stderr,"Ts.c: WARNING: x_e value is too close to 1 for convergence in nu_tau_one\n");
         return -1;
     }
     

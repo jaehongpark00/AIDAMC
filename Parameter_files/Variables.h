@@ -14,7 +14,7 @@
 #define TOTAL_COSMOLOGY_FILEPARAMS (int)7
 
 /* Allows the output of the global averaged quantities in the computation of the IGM spin temperature. Used for de-bugging purposes only */
-#define OUTPUT_AVE  0
+#define OUTPUT_AVE  1
 
 /* Whether or not to print the text files containing the neutral fraction or 21cm PS files */
 #define PRINT_FILES (int)1
@@ -92,10 +92,17 @@ double EFF_FACTOR_PL_INDEX, HII_EFF_FACTOR, ION_EFF_FACTOR, R_BUBBLE_MAX, ION_Tv
 double BinWidth_pH,inv_BinWidth_pH,BinWidth_elec,inv_BinWidth_elec,BinWidth_10,inv_BinWidth_10, erfc_arg_min, erfc_arg_max, erfc_arg_val, ArgBinWidth, InvArgBinWidth;
 double X_RAY_Tvir_LOWERBOUND, X_RAY_Tvir_UPPERBOUND,LOG10_X_RAY_Tvir_LOWERBOUND, LOG10_X_RAY_Tvir_UPPERBOUND, INCLUDE_ZETA_PL;
 // New in v1.4
-int Nsteps_zp;
+//static int Nsteps_zp;
 float growth_zpp;
 float *zpp_interp_table;
 double F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, M_MIN;
+//double *log10_overdense_low_table, *log10_Fcollz_SFR_low_table;
+//float *Overdense_high_table, *Fcollz_SFR_high_table, *zpp_table;
+float *zpp_table;
+double *log10_overdense_Xray_low_table, **log10_Fcollz_SFR_Xray_low_table;
+float *Overdense_Xray_high_table, **Fcollz_SFR_Xray_high_table;
+double *log10_overdense_spline_SFR,*log10_Fcoll_spline_SFR;
+float *Overdense_spline_SFR, *Fcoll_spline_SFR;
 
 
 //double F_STAR;
