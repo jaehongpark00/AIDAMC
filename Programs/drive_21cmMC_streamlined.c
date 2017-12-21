@@ -41,7 +41,9 @@ char lightcone_box_names[1000][500];
 float REDSHIFT;
 
 void init_21cmMC_Ts_arrays();
+void init_21cmMC_Ts_save_fcoll(); // New in v1.4
 void init_21cmMC_HII_arrays();
+void init_21cmMC_HII_save_fcoll(); // New in v1.4
 void init_21cmMC_TsSaveBoxes_arrays();
 
 void ComputeBoxesForFile();
@@ -56,7 +58,9 @@ void GeneratePS(int CO_EVAL, double AverageTb);
 void ReadFcollTable();
 
 void destroy_21cmMC_Ts_arrays();
+void destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
 void destroy_21cmMC_HII_arrays();
+void destroy_21cmMC_HII_save_fcoll(); // New in v1.4
 void destroy_21cmMC_TsSaveBoxes_arrays();
 
 // This, and the one below are functions for determining the correct cell positions for direction of the light-cone. Tested this for the z-direction, but should be valid for all.
@@ -1245,6 +1249,7 @@ void ComputeTsBoxes() {
 
 			// New in v1.4
 			if(USE_MASS_DEPENDENT_ZETA) {
+				init_21cmMC_Ts_save_fcoll(); // New in v1.4
                 for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
       					//growth_zpp = dicke(zpp_for_evolve_list[R_ct]);
@@ -1278,6 +1283,7 @@ void ComputeTsBoxes() {
       					}        
       					//---------- interpolation for fcoll is done ----------
       					fcoll_R_array[R_ct] += fcoll;
+						fcoll_Xray_SFR_array[box_ct][R_ct] = fcoll; // Save fcoll to use in the next step, i.e. dfcoll/dz
                     }
                 }
                 for (R_ct=0; R_ct<NUM_FILTER_STEPS_FOR_Ts; R_ct++){
@@ -1402,6 +1408,7 @@ void ComputeTsBoxes() {
                     // Now determine all the differentials for the heating/ionisation rate equations
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
                         if (USE_MASS_DEPENDENT_ZETA) {
+							/*
 							if (zpp_for_evolve_list[R_ct] - redshift_interp_table[arr_num+R_ct] > 1e-3) {
 								printf("zpp = %.4f, zpp_array = %.4f\n", zpp, redshift_interp_table[arr_num+R_ct]);
 								exit(0);
@@ -1428,12 +1435,16 @@ void ComputeTsBoxes() {
           							fcoll = 1.;
         						}    
       						}        
+							*/
 							/* Instead of dfcoll/dz we compute fcoll/(t_STAR*H(z)^-1)*(dt/dz), 
         					where t_STAR is the typical star-formation timescale, in units of the Hubble time.
         					This is the same parameter with 't_STAR' (defined in ANAL_PARAMS.H).
         					If turn the new parametrization on, this is a free parameter.
         					*/
-      						dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*(double)fcoll*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
+      						//dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*(double)fcoll*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
+      						dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*(double)fcoll_Xray_SFR_array[box_ct][R_ct]*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
+							//if(fcoll - fcoll_Xray_SFR_array[box_ct][R_ct] > 1e-4) 
+						    //		printf("box_ct = %d, R_ct = %d, fcoll = %.4e, fcoll_array = %.4e\n",box_ct, R_ct, fcoll, fcoll_Xray_SFR_array[box_ct][R_ct]);
 
 						}
 						else { 
@@ -1587,6 +1598,7 @@ void ComputeTsBoxes() {
             dzp = zp - prev_zp;
             
             counter += 1;
+			destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
         } // end main integral loop over z'
         
         destroy_21cmMC_Ts_arrays();
@@ -2011,6 +2023,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             if(USE_MASS_DEPENDENT_ZETA) {
                 initialiseGL_FcollSFR(NGL_SFR, M_TURN, massofscaleR);
                 initialiseFcollSFR_spline(REDSHIFT_SAMPLE,massofscaleR,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
+				init_21cmMC_HII_save_fcoll();
             }
 			else {
             	erfc_denom = 2.*(pow(sigma_z0(M_MIN), 2) - pow(sigma_z0(massofscaleR), 2) );
@@ -2060,6 +2073,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                                 else { // the entrire cell belongs to a collpased halo...  this is rare...
                                     Splined_Fcoll =  1.0;
                                 }
+								fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM] = Splined_Fcoll;
                             }
                             else {
                             
@@ -2110,6 +2124,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             }
             
             ST_over_PS = mean_f_coll_st/f_coll;
+			if(USE_MASS_DEPENDENT_ZETA) destroy_21cmMC_HII_save_fcoll();
             
             //////////////////////////////  MAIN LOOP THROUGH THE BOX ///////////////////////////////////
             // now lets scroll through the filtered box
@@ -2162,6 +2177,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                         if(USE_FCOLL_IONISATION_TABLE) {
                             // New in v1.4: current version do not support to use this option for the mass dependent ionizing efficiency.
                             if(USE_MASS_DEPENDENT_ZETA) {
+								/*
                                 if(curr_dens < 0.99*Deltac) {
                                     // This is here as the interpolation tables have some issues very close
                                     // to Deltac. So lets just assume these voxels collapse anyway.
@@ -2172,6 +2188,10 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                                 else {
                                     Splined_Fcoll = 1.;
                                 }
+								if(Splined_Fcoll - fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM] > 1e-4) 
+									printf("x= %d, y=%d, z=%d, fcoll = %.4e, fcoll_array = %.4e\n", x,y,z,Splined_Fcoll,fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM]);
+								*/
+								Splined_Fcoll = fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM];
                             }
                             // check for aliasing which can occur for small R and small cell sizes,
                             // since we are using the analytic form of the window function for speed and simplicity
@@ -4012,44 +4032,35 @@ void init_21cmMC_Ts_arrays() {
     	}
 	}
 	else {
-		printf("1\n");
     	fcoll_R_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
     	dfcoll_dz_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
-		printf("2\n");
 
     	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
         	fcoll_R_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
         	dfcoll_dz_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
 		}
-		printf("3\n");
         for(j=0;j<zpp_interp_points;j++) {
             fcoll_R_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
             dfcoll_dz_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
         }
 
-		printf("4\n");
     	grid_dens = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double *));
     	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
         	grid_dens[i] = (double *)calloc(dens_Ninterp,sizeof(double));
     	}
 
-		printf("5\n");
     	density_gridpoints = (double **)calloc(dens_Ninterp,sizeof(double *));
     	for(i=0;i<dens_Ninterp;i++) {
         	density_gridpoints[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
     	}
-		printf("6\n");
     	ST_over_PS_arg_grid = (double *)calloc(zpp_interp_points,sizeof(double));
-		printf("7\n");
 
     	dens_grid_int_vals = (short **)calloc(HII_TOT_NUM_PIXELS,sizeof(short *));
     	for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
         	dens_grid_int_vals[i] = (short *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(short));
     	}
-		printf("8\n");
 
     	Sigma_Tmin_grid = (double *)calloc(zpp_interp_points,sizeof(double));
-		printf("9\n");
 
     	fcoll_interp1 = (double **)calloc(dens_Ninterp,sizeof(double *));
     	fcoll_interp2 = (double **)calloc(dens_Ninterp,sizeof(double *));
@@ -4061,7 +4072,6 @@ void init_21cmMC_Ts_arrays() {
         	dfcoll_interp1[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
         	dfcoll_interp2[i] = (double *)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
     	}
-		printf("10\n");
 
     	delNL0_bw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     	delNL0_Offset = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
@@ -4070,7 +4080,6 @@ void init_21cmMC_Ts_arrays() {
     	delNL0_ibw = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     	log10delNL0_diff = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
     	log10delNL0_diff_UL = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
-		printf("11\n");
     }
     
     fcoll_R_array = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
@@ -4141,6 +4150,24 @@ void init_21cmMC_Ts_arrays() {
     dstarlya_dt_prefactor = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double));
     
     SingleVal_int = calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(short));
+}
+
+void init_21cmMC_Ts_save_fcoll() { // New in v1.4
+
+	int i;
+
+    fcoll_Xray_SFR_array = (float **)calloc(HII_TOT_NUM_PIXELS,sizeof(float *));
+    for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
+        fcoll_Xray_SFR_array[i] = (float *)calloc((float)NUM_FILTER_STEPS_FOR_Ts,sizeof(float));
+    }
+
+}
+
+void init_21cmMC_HII_save_fcoll() { // New in v1.4
+
+	int i;
+
+    fcoll_SFR_array = calloc(HII_TOT_NUM_PIXELS,sizeof(float));
 }
 
 void destroy_21cmMC_HII_arrays(int skip_deallocate) {
@@ -4350,4 +4377,17 @@ void destroy_21cmMC_Ts_arrays() {
     free(freq_int_ion_tbl_diff);
     free(freq_int_lya_tbl_diff);
     
+}
+
+void destroy_21cmMC_Ts_save_fcoll() {
+
+	int i;
+
+    for(i=0;i<HII_TOT_NUM_PIXELS;i++) {
+        free(fcoll_Xray_SFR_array[i]);
+    }
+    free(fcoll_Xray_SFR_array);
+}
+void destroy_21cmMC_HII_save_fcoll() {
+	free(fcoll_SFR_array);
 }

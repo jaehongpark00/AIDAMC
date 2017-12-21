@@ -103,6 +103,7 @@ double *log10_overdense_Xray_low_table, **log10_Fcollz_SFR_Xray_low_table;
 float *Overdense_Xray_high_table, **Fcollz_SFR_Xray_high_table;
 double *log10_overdense_spline_SFR,*log10_Fcoll_spline_SFR;
 float *Overdense_spline_SFR, *Fcoll_spline_SFR;
+float **fcoll_Xray_SFR_array, *fcoll_SFR_array;
 
 
 //double F_STAR;
