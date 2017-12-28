@@ -702,7 +702,6 @@ void ComputeTsBoxes() {
         // Need to take on some number for the memory allocation
         Numzp_for_table = 1;
     }
-	printf("HERE -2 \n");
     
     // Allocate the memory for this interpolation table
     double ***Fcoll_R_Table = (double ***)calloc(Numzp_for_table,sizeof(double **));
@@ -723,11 +722,9 @@ void ComputeTsBoxes() {
             }
         }
     }
-	printf("HERE -1 \n");
     
     // Initialise arrays to be used for the Ts.c computation //
     init_21cmMC_Ts_arrays();
-	printf("HERE -0.5 \n");
     
     ///////////////////////////////  BEGIN INITIALIZATION   //////////////////////////////
     growth_factor_z = dicke(REDSHIFT);
@@ -746,11 +743,10 @@ void ComputeTsBoxes() {
     // In this case, we define M_MIN = M_TURN/50, i.e. the M_MIN is integration limit to compute follapse fraction.
     //M_MIN_at_z = get_M_min_ion(REDSHIFT);
     if (!USE_MASS_DEPENDENT_ZETA) M_MIN = M_TURN;
-	printf("HERE\n");
     
     // Initialize some interpolation tables
     init_heat();
-	printf("z = %.4f, z_max = %.4f\n",REDSHIFT, Z_HEAT_MAX);
+	//printf("z = %.4f, z_max = %.4f\n",REDSHIFT, Z_HEAT_MAX);
     
     // check if we are in the really high z regime before the first stars; if so, simple
     if (REDSHIFT > Z_HEAT_MAX){
@@ -968,7 +964,7 @@ void ComputeTsBoxes() {
         }
     
         determine_zpp_max = zpp*1.001;
-		printf("zpp_min = %.4f, zpp_max = %.4f\n",determine_zpp_min,determine_zpp_max);
+		//printf("zpp_min = %.4f, zpp_max = %.4f\n",determine_zpp_min,determine_zpp_max);
     
         ////////////////////////////    Create and fill interpolation tables to be used by Ts.c   /////////////////////////////
 
@@ -1095,7 +1091,6 @@ void ComputeTsBoxes() {
             // New in v1.4: initialise interpolation of fcoll over zpp and overdensity.
     		if (USE_MASS_DEPENDENT_ZETA) {
       			arr_num = NUM_FILTER_STEPS_FOR_Ts*counter; // New
-				printf("arr_num = %d\n", arr_num);
       			for (i=0; i<NUM_FILTER_STEPS_FOR_Ts; i++) {
         			gsl_spline_init(FcollLow_zpp_spline[i], log10_overdense_Xray_low_table, log10_Fcollz_SFR_Xray_low_table[arr_num + i], NSFR_low);
         			spline(Overdense_Xray_high_table-1,Fcollz_SFR_Xray_high_table[arr_num + i]-1,NSFR_high,0,0,second_derivs_Fcoll_zpp[i]-1);  
@@ -1162,15 +1157,9 @@ void ComputeTsBoxes() {
            		if (USE_MASS_DEPENDENT_ZETA) { 
                 	// Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
 					FgtrM_st_SFR_X_z(zpp,&(Splined_Fcollzpp_X_mean));
-					if (isnan(Splined_Fcollzpp_X_mean) || isinf(Splined_Fcollzpp_X_mean)) {
-						      printf("Problem at cell: R_ct = %d, FgtrM_st_SFR_X_z=%e\n",R_ct, Splined_Fcollzpp_X_mean);
-					}
                 	//ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
                 	ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX);
                 	ST_over_PS[R_ct] *= Splined_Fcollzpp_X_mean;
-					if (isnan(ST_over_PS[R_ct]) || isinf(ST_over_PS[R_ct])) {
-						      printf("Problem at cell: R_ct = %d, ST_over_PS=%e\n",R_ct, ST_over_PS[R_ct]);
-					}
 				}
            		else { 
             
@@ -1251,13 +1240,6 @@ void ComputeTsBoxes() {
 				init_21cmMC_Ts_save_fcoll(); // New in v1.4
                 for (box_ct=HII_TOT_NUM_PIXELS; box_ct--;){
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
-      					//growth_zpp = dicke(zpp_for_evolve_list[R_ct]);
-						//TEST
-						if (zpp_for_evolve_list[R_ct] - redshift_interp_table[arr_num+R_ct] > 1e-3) {
-							printf("zpp = %.4f, zpp_array = %.4f\n", zpp_for_evolve_list[R_ct], redshift_interp_table[arr_num+R_ct]);
-							exit(0);
-						}
-						//printf("box_ct = %d, R_ct = %d\n",box_ct, R_ct);
       					//---------- interpolation for fcoll starts ----------
       					if (delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct] < 1.5){
         					if (delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct] < -1.) {
@@ -1408,10 +1390,6 @@ void ComputeTsBoxes() {
                     for (R_ct=NUM_FILTER_STEPS_FOR_Ts; R_ct--;){
                         if (USE_MASS_DEPENDENT_ZETA) {
 							/*
-							if (zpp_for_evolve_list[R_ct] - redshift_interp_table[arr_num+R_ct] > 1e-3) {
-								printf("zpp = %.4f, zpp_array = %.4f\n", zpp, redshift_interp_table[arr_num+R_ct]);
-								exit(0);
-							}
       						//---------- interpolation for fcoll starts ----------
       						if (delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct] < 1.5){
         						if (delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct] < -1.) {
@@ -1442,8 +1420,6 @@ void ComputeTsBoxes() {
         					*/
       						//dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*(double)fcoll*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
       						dfcoll_dz_val = ST_over_PS[R_ct]*(1.+delNL0_rev[box_ct][R_ct]*zpp_growth[R_ct])*(double)fcoll_Xray_SFR_array[box_ct][R_ct]*hubble(zpp_for_evolve_list[R_ct])/t_STAR*fabs(dtdz(zpp_for_evolve_list[R_ct]));
-							//if(fcoll - fcoll_Xray_SFR_array[box_ct][R_ct] > 1e-4) 
-						    //		printf("box_ct = %d, R_ct = %d, fcoll = %.4e, fcoll_array = %.4e\n",box_ct, R_ct, fcoll, fcoll_Xray_SFR_array[box_ct][R_ct]);
 
 						}
 						else { 
@@ -1614,7 +1590,6 @@ void ComputeTsBoxes() {
     	}
     	free(Fcoll_R_Table);
 	}
-	printf("Completed.\n");
 }
 
 void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_REDSHIFT) {
@@ -1656,9 +1631,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
 	float Mlim_Fstar, Mlim_Fesc; // New in v1.4
 
     int min_slice_index,slice_index_reducedLC;
-	float mean_fcoll_test;//TEST
-
-	printf("In HII bubble: starting...\n");
     
     min_slice_index = HII_DIM + 1;
     slice_index_reducedLC = 0;
@@ -1858,7 +1830,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     }
 
     if (mean_f_coll_st*ION_EFF_FACTOR < HII_ROUND_ERR){ // way too small to ionize anything...
-	// Below line is test, after test comment out this
         printf( "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n I will just declare everything to be neutral\n", mean_f_coll_st, f_coll_crit);
 
         // find the neutral fraction
@@ -1888,11 +1859,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                 for (j=0; j<HII_DIM; j++){
                     for (k=0; k<HII_DIM; k++){
                         *((float *)xe_unfiltered + HII_R_FFT_INDEX(i,j,k)) = x_e_z[HII_R_INDEX(i,j,k)];
-						// TEST
-						if (isnan(x_e_z[HII_R_INDEX(i,j,k)])) {
-						      printf("line 1898: Problem at cell %d, %d, %d, x_e_z=%e\n",i,j,k, x_e_z[HII_R_INDEX(i,j,k)]);
-							  exit(0);
-						}
                     }
                 }
             }
