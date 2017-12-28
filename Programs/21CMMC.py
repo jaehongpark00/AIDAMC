@@ -672,7 +672,7 @@ if __name__ == '__main__':
 	param_upper_limits.append(UpperBound_NU_X_THRESH)	
 
 	# X-Ray spectral index at frequencies higher than NU_X_THRESH
-	param_legend['X_RAY_SPEC_INDEX'] = True
+	param_legend['X_RAY_SPEC_INDEX'] = False#True
 
 	# Set a fiducial value for X_RAY_SPEC_INDEX, and its lower and upper bounds. Not all will be used, depends on what options are set.
 	Fiducial_X_RAY_SPEC_INDEX = 1.0
@@ -715,7 +715,7 @@ if __name__ == '__main__':
 		param_legend['SIGMA_8'] = False		
 
 	# little h (value of H_0)
-	Fiducial_littleh = 0.680000
+	Fiducial_littleh = 0.700000#0.680000
 
 	LowerBound_littleh = 0.65
 	UpperBound_littleh = 0.71
@@ -731,7 +731,7 @@ if __name__ == '__main__':
 
 	# Omega matter, fraction of mass, and correspondingly, the dark energy fraction
 	# Note here that for Omega M, we implicitly assume Omega L = 1 - Omega M
-	Fiducial_Omega_M = 0.310000
+	Fiducial_Omega_M = 0.270000#0.310000
 
 	LowerBound_OMEGA_M = 0.25
 	UpperBound_OMEGA_M = 0.35
@@ -745,7 +745,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_M'] = False
 	# Omega baryon, the baryon component
-	Fiducial_Omega_b = 0.048
+	Fiducial_Omega_b = 0.046#0.048
 
 	LowerBound_OMEGA_b = 0.0470
 	UpperBound_OMEGA_b = 0.0490
@@ -759,7 +759,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_b'] = False
 
-	Fiducial_ns = 0.97000
+	Fiducial_ns = 0.96000#0.97000
 
 	LowerBound_NS = 0.9
 	UpperBound_NS = 1.0

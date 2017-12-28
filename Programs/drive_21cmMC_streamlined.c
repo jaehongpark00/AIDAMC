@@ -681,7 +681,6 @@ void ComputeTsBoxes() {
 	// New in v1.4
 	int arr_num;
 	float Splined_Fcoll,Splined_Fcollzp_mean,Splined_Fcollzpp_X_mean,zp_table,fcoll;
-	//float delta_test; // TEST
 
 	printf("F_STAR10 = %.4f, ALPHA_STAR = %.4f, F_ESC10 = %.4f, ALPHA_ESC = %.4e, M_MIN = %.4e, M_TURN = %.4e\n",F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_MIN, M_TURN); // TEST
     
@@ -1598,7 +1597,7 @@ void ComputeTsBoxes() {
             dzp = zp - prev_zp;
             
             counter += 1;
-			destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
+			if (USE_MASS_DEPENDENT_ZETA) destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
         } // end main integral loop over z'
         
         destroy_21cmMC_Ts_arrays();
@@ -1657,6 +1656,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
 	float Mlim_Fstar, Mlim_Fesc; // New in v1.4
 
     int min_slice_index,slice_index_reducedLC;
+	float mean_fcoll_test;//TEST
 
 	printf("In HII bubble: starting...\n");
     
@@ -1845,7 +1845,13 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     
     // New in v1.4
     if (USE_MASS_DEPENDENT_ZETA) {
-        mean_f_coll_st = FgtrM_st_SFR(REDSHIFT_SAMPLE,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
+		if (USE_LIGHTCONE) {
+			FgtrM_st_SFR_z(REDSHIFT_SAMPLE,&(Splined_Fcoll));
+			mean_f_coll_st = (double)Splined_Fcoll;
+			}
+		else {
+        	mean_f_coll_st = FgtrM_st_SFR(REDSHIFT_SAMPLE,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
+		}
     }
     else {
         mean_f_coll_st = FgtrM_st(REDSHIFT_SAMPLE, M_MIN);
@@ -4032,17 +4038,17 @@ void init_21cmMC_Ts_arrays() {
     	}
 	}
 	else {
-    	fcoll_R_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
-    	dfcoll_dz_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
 
+	    fcoll_R_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
+    	dfcoll_dz_grid = (double ***)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double **));
     	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
-        	fcoll_R_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
-        	dfcoll_dz_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *));
-		}
-        for(j=0;j<zpp_interp_points;j++) {
-            fcoll_R_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
-            dfcoll_dz_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
-        }
+        	fcoll_R_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *)); 
+        	dfcoll_dz_grid[i] = (double **)calloc(zpp_interp_points,sizeof(double *)); 
+        	for(j=0;j<zpp_interp_points;j++) {
+            	fcoll_R_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
+            	dfcoll_dz_grid[i][j] = (double *)calloc(dens_Ninterp,sizeof(double));
+        	}    
+    	}    
 
     	grid_dens = (double **)calloc(NUM_FILTER_STEPS_FOR_Ts,sizeof(double *));
     	for(i=0;i<NUM_FILTER_STEPS_FOR_Ts;i++) {
