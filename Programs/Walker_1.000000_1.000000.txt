@@ -1,9 +1,10 @@
-FLAGS    0    1    0    0    1    1    1
+FLAGS    1    1    0    0    1    1    1
 F_STAR10    0.05
 ALPHA_STAR    0.4
 F_ESC10    0.1
 ALPHA_ESC    -0.4
-M_TURN    9.
+M_TURN    8.69897
+t_STAR    0.5
 ZETA    30.0
 MFP    15.0
 TVIR_MIN    4.69897
@@ -15,8 +16,6 @@ X_RAY_SPEC_INDEX    1.000000
 X_RAY_TVIR_MIN    4.69897
 X_RAY_TVIR_LB    4.0
 X_RAY_TVIR_UB    6.0
-F_STAR    0.05
-t_STAR    0.5
 N_RSD_STEPS    20
 LOS_direction    2
 CO-EVAL-Z    6.000594

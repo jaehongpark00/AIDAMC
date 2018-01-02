@@ -22,8 +22,12 @@ QSO_Redshift = 7.0842
 
 class Likelihood21cmFast_multiz(object):
     
-    def __init__(self, k_values, PS_values, Error_k_values, PS_Error, Redshift, Redshifts_For_Prior, param_legend, Fiducial_Params, FlagOptions, param_string_names, NSplinePoints, 
-                        TsCalc_z, Foreground_cut, Shot_Noise_cut, IncludeLightCone, ModUncert, PriorLegend, NFValsQSO, PDFValsQSO):
+    def __init__(self, Redshifts_For_LF,Muv_values, phi_values, phi_Error, k_values, PS_values, Error_k_values, PS_Error, Redshift, Redshifts_For_Prior, param_legend, Fiducial_Params, FlagOptions, param_string_names, NSplinePoints, 
+                        TsCalc_z, Foreground_cut, Shot_Noise_cut, IncludeLightCone, IncludeLF, ModUncert, PriorLegend, NFValsQSO, PDFValsQSO):
+        self.Redshifts_For_LF = Redshifts_For_LF # New in v1.4
+        self.Muv_values = Muv_values   # New in v1.4
+        self.phi_values = phi_values   # New in v1.4
+        self.phi_Error = phi_Error     # New in v1.4
         self.k_values = k_values
         self.PS_values = PS_values
         self.Error_k_values = Error_k_values
@@ -39,6 +43,7 @@ class Likelihood21cmFast_multiz(object):
         self.Foreground_cut = Foreground_cut
         self.Shot_Noise_cut = Shot_Noise_cut
         self.IncludeLightCone = IncludeLightCone
+        self.IncludeLF = IncludeLF
         self.ModUncert = ModUncert
         self.PriorLegend = PriorLegend
         self.NFValsQSO = NFValsQSO
@@ -114,13 +119,7 @@ class Likelihood21cmFast_multiz(object):
             seq.append("%s"%(number_redshifts))
         # Add light cone flag
         seq.append("%s"%(LightConeFlag))
-        """
-        # If power-law dependence on ionising efficiency is allowed. Add the flag here (support not yet included)
-        if self.FlagOptions['INCLUDE_POWERLAW'] is True:
-            seq.append("1")
-        else:
-            seq.append("0")
-        """
+        
 	# If mass-dependence on ionising efficiency is allowed. Add the flag here
         if self.FlagOptions['USE_MASS_DEPENDENT_ZETA'] is True:
             seq.append("1")
@@ -129,7 +128,16 @@ class Likelihood21cmFast_multiz(object):
         # Add redshift for Ts.c calculation
         seq.append("%s"%(self.TsCalc_z))
 
+        #StringArgument = string.join(seq,separator)
+        #print 'StringArgument:',StringArgument
+        
+        if self.IncludeLF is True:
+            seq.append("1")
+        else:
+            seq.append("0")
+
         StringArgument = string.join(seq,separator)
+        print 'StringArgument:',StringArgument
 
         ##### Now we need to create the individual walker file to be read by drive_21cmMC_streamlined #####
         
@@ -340,10 +348,57 @@ class Likelihood21cmFast_multiz(object):
         counter = 0
 
         command = "./drive_21cmMC_streamlined %s"%(StringArgument)
+        print "TEST:",StringArgument
         os.system(command)
 
         total_sum = 0
-        
+        """ 
+        # New in v1.4
+        if self.FlagOptions['IncludeLF'] is True:
+            # At the moment I just put the redshift list by hand, but this part should be modified.
+            NUM_OF_REDSHIFTS_FOR_LF = 4
+            for iz in range(NUM_OF_REDSHIFTS_FOR_LF):
+                # Exclude bright-end (Muv < -20) from Lumnosity function 
+                Muv_i = []
+                phi_i = []
+                error_i = []
+                j = 0 
+                while j < len(self.Muv_values[i]):
+                    #if self.Muv_values[i,j] > -20.:
+                    if (self.Muv_values[i,j] > -20.) and (self.phi_values[i,j] != 1e-30):
+                        Muv_i.append(self.Muv_values[i,j])
+                        phi_i.append(self.phi_values[i,j])
+                        error_i.append(self.phi_Error[i,j])
+                        #print i,j,self.Muv_values[i,j]
+                    j = j + 1  
+
+                Muv_values_estimate0 = np.loadtxt('LF_estimate_%s_%02d.txt'%(StringArgument_other,iz), usecols=(0,))
+                log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%02d.txt'%(StringArgument_other,iz), usecols=(1,))
+                Muv_values_estimate = Muv_values_estimate0[::-1]
+                log10phi_values_estimate = log10phi_values_estimate0[::-1]
+
+                LF_criterion = 1 #LF_criteion == 0: skip this chain.
+                if (max(Muv_values_estimate) < min(self.Muv_values[i])) or (min(Muv_values_estimate) > max(self.Muv_values[i])):
+                    LF_criterion = 0
+                
+                if (LF_criterion == 0):
+                    total_sum = 1e15
+                else:
+                    LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
+                    for ii in range(len(Muv_i)):
+                        Muv_i_val = Muv_i[ii]
+                        log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
+                        total_sum += np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+
+                if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                    command = "mv LF_estimate_%s_%02d.txt %s/LFData/"%(StringArgument_other,iz,self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                else:
+                    command = "rm LF_estimate_%s_%02d.txt %s/LFData/"%(StringArgument_other,iz)
+            
+                os.system(command)
+        """
+
+
         if self.FlagOptions['KEEP_GLOBAL_DATA'] is True:
 
             k_values_estimate = np.loadtxt('AveData_%s.txt'%(StringArgument_other), usecols=(0,))
@@ -399,6 +454,48 @@ class Likelihood21cmFast_multiz(object):
                         ModelPS_val = interpolate.splev(FrequencyVal,splined_model,der=0)
                         
                         total_sum += np.square( (MockPS_val - ModelPS_val)/self.PS_Error[0][j] ) 
+
+            # New in v1.4
+            if self.IncludeLF is True:
+                # At the moment I just put the redshift list by hand, but this part should be modified.
+                #NUM_OF_REDSHIFTS_FOR_LF = 4
+                for iz in range(len(self.Redshifts_For_LF)):
+                    # Exclude bright-end (Muv < -20) from Lumnosity function 
+                    Muv_i = []
+                    phi_i = []
+                    error_i = []
+                    j = 0 
+                    while j < len(self.Muv_values[iz]):
+                        if self.Muv_values[iz][j] > -20. and self.Muv_values[iz][j]!=0.:
+                            Muv_i.append(self.Muv_values[iz][j])
+                            phi_i.append(self.phi_values[iz][j])
+                            error_i.append(self.phi_Error[iz][j])
+                        j = j + 1  
+
+                    Muv_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(0,))
+                    log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(1,))
+                    Muv_values_estimate = Muv_values_estimate0[::-1]
+                    log10phi_values_estimate = log10phi_values_estimate0[::-1]
+
+                    LF_criterion = 1 #LF_criteion == 0: skip this chain.
+                    if (max(Muv_values_estimate) < min(self.Muv_values[iz])) or (min(Muv_values_estimate) > max(self.Muv_values[iz])):
+                        LF_criterion = 0
+                
+                    if (LF_criterion == 0):
+                        total_sum = total_sum + 1e15
+                    else:
+                        LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
+                        for ii in range(len(Muv_i)):
+                            Muv_i_val = Muv_i[ii]
+                            log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
+                            total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+
+                    if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                        command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                    else:
+                        command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz])
+            
+                    os.system(command)
 
         else:
 
@@ -489,6 +586,48 @@ class Likelihood21cmFast_multiz(object):
                         f.write("%s\n"%(StoredFileLayout).format(*x))
 
                 f.close()
+
+            # New in v1.4
+            if self.IncludeLF is True:
+                # At the moment I just put the redshift list by hand, but this part should be modified.
+                #NUM_OF_REDSHIFTS_FOR_LF = 4
+                for iz in range(len(self.Redshifts_For_LF)):
+                    # Exclude bright-end (Muv < -20) from Lumnosity function 
+                    Muv_i = []
+                    phi_i = []
+                    error_i = []
+                    j = 0 
+                    while j < len(self.Muv_values[iz]):
+                        if self.Muv_values[iz][j] > -20. and self.Muv_values[iz][j]!=0.:
+                            Muv_i.append(self.Muv_values[iz][j])
+                            phi_i.append(self.phi_values[iz][j])
+                            error_i.append(self.phi_Error[iz][j])
+                        j = j + 1  
+
+                    Muv_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(0,))
+                    log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(1,))
+                    Muv_values_estimate = Muv_values_estimate0[::-1]
+                    log10phi_values_estimate = log10phi_values_estimate0[::-1]
+
+                    LF_criterion = 1 #LF_criteion == 0: skip this chain.
+                    if (max(Muv_values_estimate) < min(self.Muv_values[iz])) or (min(Muv_values_estimate) > max(self.Muv_values[iz])):
+                        LF_criterion = 0
+                
+                    if (LF_criterion == 0):
+                        total_sum = total_sum + 1e15
+                    else:
+                        LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
+                        for ii in range(len(Muv_i)):
+                            Muv_i_val = Muv_i[ii]
+                            log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
+                            total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+
+                    if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                        command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                    else:
+                        command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz])
+            
+                    os.system(command)
 
         if (self.PriorLegend['PlanckPrior'] is True and number_redshifts > 2) or self.PriorLegend['McGreerPrior'] is True or self.PriorLegend['GreigPrior'] is True or self.FlagOptions['KEEP_ALL_DATA'] is True:
 
@@ -684,7 +823,51 @@ class Likelihood21cmFast_multiz(object):
                 QSO_Prob = -2.*np.log(QSO_Prob)
 
                 total_sum = total_sum + QSO_Prob
+        """
+        # New in v1.4
+        if self.FlagOptions['IncludeLF'] is True:
+            # At the moment I just put the redshift list by hand, but this part should be modified.
+            NUM_OF_REDSHIFTS_FOR_LF = 4
+            for iz in range(NUM_OF_REDSHIFTS_FOR_LF):
+                # Exclude bright-end (Muv < -20) from Lumnosity function 
+                Muv_i = []
+                phi_i = []
+                error_i = []
+                j = 0 
+                while j < len(self.Muv_values[i]):
+                    #if self.Muv_values[i,j] > -20.:
+                    if (self.Muv_values[i,j] > -20.) and (self.phi_values[i,j] != 1e-30):
+                        Muv_i.append(self.Muv_values[i,j])
+                        phi_i.append(self.phi_values[i,j])
+                        error_i.append(self.phi_Error[i,j])
+                        #print i,j,self.Muv_values[i,j]
+                    j = j + 1  
 
+                Muv_values_estimate0 = np.loadtxt('LF_estimate_%s_%02d.txt'%(StringArgument_other,iz), usecols=(0,))
+                log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%02d.txt'%(StringArgument_other,iz), usecols=(1,))
+                Muv_values_estimate = Muv_values_estimate0[::-1]
+                log10phi_values_estimate = log10phi_values_estimate0[::-1]
+
+                LF_criterion = 1 #LF_criteion == 0: skip this chain.
+                if (max(Muv_values_estimate) < min(self.Muv_values[i])) or (min(Muv_values_estimate) > max(self.Muv_values[i])):
+                    LF_criterion = 0
+                
+                if (LF_criterion == 0):
+                    total_sum = total_sum + 1e15
+                else:
+                    LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
+                    for ii in range(len(Muv_i)):
+                        Muv_i_val = Muv_i[ii]
+                        log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
+                        total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+
+                if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                    command = "mv LF_estimate_%s_%02d.txt %s/LFData/"%(StringArgument_other,iz,self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                else:
+                    command = "rm LF_estimate_%s_%02d.txt %s/LFData/"%(StringArgument_other,iz)
+            
+                os.system(command)
+        """
         
         if self.IncludeLightCone is True:
 

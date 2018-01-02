@@ -33,7 +33,10 @@
  the 1.5 Mpc voxels used in my work. This should not need to be changed */
 #define LC_BOX_PADDING_IN_MPC (float)12
 
+/* The number of bins for arrays to compute luminosity functions (New in v1.4) */
+#define NBINS_LF (int)100
 
+#define NUM_OF_REDSHIFT_FOR_LF (int)4
 // Declaration of various required variables
 
 
@@ -72,7 +75,7 @@ double *Ionisation_fcoll_table, *Ionisation_fcoll_table_final;
 
 short **dens_grid_int_vals, *SingleVal_int;
 
-int NUM_BINS, CREATE_FFT_DATA_FROM_FILE,READ_FFT_DATA_FROM_FILE,SHORTEN_FCOLL,N_USER_REDSHIFT, WALKER_FILE_LENGTH, USE_LIGHTCONE,CALC_PS, USE_MASS_DEPENDENT_ZETA, USE_TS_FLUCT,INHOMO_RECO,STORE_DATA,ERFC_NUM_POINTS, erfc_arg_val_index;
+int NUM_BINS, CREATE_FFT_DATA_FROM_FILE,READ_FFT_DATA_FROM_FILE,SHORTEN_FCOLL,N_USER_REDSHIFT, WALKER_FILE_LENGTH, USE_LIGHTCONE,CALC_PS, USE_MASS_DEPENDENT_ZETA, USE_LF, USE_TS_FLUCT,INHOMO_RECO,STORE_DATA,ERFC_NUM_POINTS, erfc_arg_val_index;
 
 float R_MFP_MIN, R_MFP_BINWIDTH, TVIR_BINWIDTH, PL_BINWIDTH, R_MFP_VAL_1, R_MFP_VAL_2, TVIR_VAL_1, TVIR_VAL_2, ZETA_PL_VAL_1, ZETA_PL_VAL_2;
 int R_MFP_INT_1, R_MFP_INT_2, TVIR_INT_1, TVIR_INT_2, ZETA_PL_INT_1, ZETA_PL_INT_2;
@@ -104,6 +107,10 @@ float *Overdense_Xray_high_table, **Fcollz_SFR_Xray_high_table;
 double *log10_overdense_spline_SFR,*log10_Fcoll_spline_SFR;
 float *Overdense_spline_SFR, *Fcoll_spline_SFR;
 float **fcoll_Xray_SFR_array, *fcoll_SFR_array;
+double *lnMhalo_param, *Muv_param, *Mhalo_param, *log10phi;
+gsl_interp_accel *LF_spline_acc;
+gsl_spline *LF_spline;
+float *z_LF;
 
 
 //double F_STAR;

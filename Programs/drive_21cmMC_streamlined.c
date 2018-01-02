@@ -15,7 +15,7 @@
  
  It is called from command line, with a fixed number of arguments (order is important). There is basically no error checking, as it would be too complicated to use that within the MCMC.
  
- An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 0 6.0
+ An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 0 6.0 1 4
  
  First two indices are required for opening the Walker_ID1_ID2.txt and WalkerCosmology_ID1_ID2.txt which contain all the cosmology and astrophysical parameters (example included)
  
@@ -23,10 +23,13 @@
 
  Fourth argument: (0 or 1), calculate the light-cone (1) or co-eval (0) redshifts
 
- Fifth argument: (0 or 1), whether or not to include a power-law index for the ionising efficiency (this option is only valid for the co-eval boxes. Does not work for calculating the IGM spin temperature
-                    or the light-cone box). Have to update the Ts.c part of the code to allow this for the light-cone
+ Fifth argument: (0 or 1), whether or not to include the new parametrization for the ionising efficiency.
  
  Sixth argument: Redshift to which Ts.c is evolved down to
+
+ Seventh argument: (0, 1 or 2), calculates luminosity functions (1) or not (0). calculate luminosity functions only (2). (New in v1.4)
+
+ Eighth argument; (0 or N), contains the 
  
 */
 
@@ -45,6 +48,7 @@ void init_21cmMC_Ts_save_fcoll(); // New in v1.4
 void init_21cmMC_HII_arrays();
 void init_21cmMC_HII_save_fcoll(); // New in v1.4
 void init_21cmMC_TsSaveBoxes_arrays();
+void init_LF_arrays(); // New in v1.4
 
 void ComputeBoxesForFile();
 void ComputeTsBoxes();
@@ -55,6 +59,8 @@ void ComputeInitialConditions();
 void ComputePerturbField(float REDSHIFT_SAMPLE);
 void GeneratePS(int CO_EVAL, double AverageTb);
 
+void ComputeLF(); // New in v1.4
+
 void ReadFcollTable();
 
 void destroy_21cmMC_Ts_arrays();
@@ -62,6 +68,7 @@ void destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
 void destroy_21cmMC_HII_arrays();
 void destroy_21cmMC_HII_save_fcoll(); // New in v1.4
 void destroy_21cmMC_TsSaveBoxes_arrays();
+void destroy_LF_arrays(); // New in v1.4
 
 // This, and the one below are functions for determining the correct cell positions for direction of the light-cone. Tested this for the z-direction, but should be valid for all.
 // Note that there is no option for FLIP_BOXES as we want to mimic the observed light-cone
@@ -143,6 +150,11 @@ int main(int argc, char ** argv){
     
     // Redshift for which Ts.c is evolved down to, i.e. z'
     REDSHIFT = atof(argv[6]);
+
+	// New in v1.4
+	// Flag set to 1 if Luminosity functions are to be used together with outputs from 21cm signals.
+	// Flag set to 2 if one wants to compute Luminosity functions only.
+	USE_LF = atof(argv[7]);
     
     // Determines the lenght of the walker file, given the values set by TOTAL_AVAILABLE_PARAMS in Variables.h and the number of redshifts
     if(USE_LIGHTCONE) {
@@ -223,12 +235,10 @@ int main(int argc, char ** argv){
     // INHOMO_RECO: Whether to include inhomogeneous recombinations into the calculation of the ionisation fraction
     // STORE_DATA: Whether to output the global data for the IGM neutral fraction and average temperature brightness (used for the global signal)
     
-    
-    
-    
-    
+
     // Initialise the power spectrum data, and relevant functions etc., for the entire file here (i.e. it is only done once here)
     init_ps();
+
     
     // If the USE_LIGHTCONE option is set, need to determing the size of the entire line-of-sight dimension for storing the slice indexes and corresponding reshifts per slice
     dR = (BOX_LEN / (double) HII_DIM) * CMperMPC; // size of cell (in comoving cm)
@@ -332,7 +342,7 @@ int main(int argc, char ** argv){
     
     ///////////////// Hard coded assignment of parameters, but can't do much about it (problem of merging C and Python code) //////////////////////////////////
 	// Constant ionizing efficiency parameter
-    HII_EFF_FACTOR = PARAM_VALS[5];
+    HII_EFF_FACTOR = PARAM_VALS[6];
 	// New in v1.4
     // Halo mass dependent ionizing efficiency parametrization.
     F_STAR10 = PARAM_VALS[0];
@@ -340,6 +350,7 @@ int main(int argc, char ** argv){
     F_ESC10 = PARAM_VALS[2];
     ALPHA_ESC = PARAM_VALS[3];
     M_TURN = pow(10.,PARAM_VALS[4]);
+    t_STAR = PARAM_VALS[5];
    
     // New in v1.4
     if(USE_MASS_DEPENDENT_ZETA) ION_EFF_FACTOR = N_GAMMA_UV * F_STAR10 * F_ESC10;
@@ -351,20 +362,19 @@ int main(int argc, char ** argv){
         R_BUBBLE_MAX = INHOMO_RECO_R_BUBBLE_MAX;
     }
     else {
-        R_BUBBLE_MAX = PARAM_VALS[6];
+        R_BUBBLE_MAX = PARAM_VALS[7];
     }
 
-    ION_Tvir_MIN = pow(10.,PARAM_VALS[7]);
-    L_X = pow(10.,PARAM_VALS[8]);
-    NU_X_THRESH = PARAM_VALS[9];
-    NU_X_BAND_MAX = PARAM_VALS[10];
+    ION_Tvir_MIN = pow(10.,PARAM_VALS[8]);
+    L_X = pow(10.,PARAM_VALS[9]);
+    NU_X_THRESH = PARAM_VALS[10];
+    NU_X_BAND_MAX = PARAM_VALS[11];
     NU_X_MAX = PARAM_VALS[11];
-    X_RAY_SPEC_INDEX = PARAM_VALS[12];
-    X_RAY_Tvir_MIN = pow(10.,PARAM_VALS[13]);
-    X_RAY_Tvir_LOWERBOUND = PARAM_VALS[14];
-    X_RAY_Tvir_UPPERBOUND = PARAM_VALS[15];
+    X_RAY_SPEC_INDEX = PARAM_VALS[13];
+    X_RAY_Tvir_MIN = pow(10.,PARAM_VALS[14]);
+    X_RAY_Tvir_LOWERBOUND = PARAM_VALS[15];
+    X_RAY_Tvir_UPPERBOUND = PARAM_VALS[16];
     //F_STAR = PARAM_VALS[16];
-    t_STAR = PARAM_VALS[16];
     N_RSD_STEPS = (int)PARAM_VALS[17];
     LOS_direction = (int)PARAM_VALS[18]; 
     
@@ -372,6 +382,18 @@ int main(int argc, char ** argv){
     NU_X_THRESH *= NU_over_EV;
     NU_X_BAND_MAX *= NU_over_EV;
     NU_X_MAX *= NU_over_EV;
+
+	////////////////// Compute luminosity functions ////////////////////////////////////////////////
+	// New in v1.4
+	if (USE_LF) {
+	// Compute luminosity functions using the parametrization of SFR.
+		init_LF_arrays();
+
+		ComputeLF();
+
+		destroy_LF_arrays();
+	}
+
     
     /////////////////   Populating requisite arrays for the construction of the light-cone box (including the indexing and individual slice redshifts etc.     /////////////////
     
@@ -642,6 +664,79 @@ int main(int argc, char ** argv){
     fftwf_free(Gamma12);
 
     return 0;
+}
+
+void ComputeLF() {
+    char filename[500];
+    FILE *F, *OUT;
+	int i,i_z;
+	double  dlnMhalo, lnMhalo_i, SFRparam, Muv_1, Muv_2, dMuvdMhalo;
+	double Luv_over_SFR = 1./1.15/1e-28, delta_lnMhalo = 5e-6;
+    /*  
+     Luv/SFR = 1 / 1.15 x 10^-28 [M_solar yr^-1/erg s^-1 Hz^-1]
+              G. Sun and S. R. Furlanetto (2016) MNRAS, 417, 33
+    */
+	double Mhalo_min = 1e6, Mhalo_max = 1e16;
+	double Mhalo_i, lnMhalo_min, lnMhalo_max, lnMhalo_lo, lnMhalo_hi, dlnM;
+	float Mlim_Fstar,Fstar;
+	// At the moment I just put the redshift list by hand, but this part should be modified.
+	float z_LF[NUM_OF_REDSHIFT_FOR_LF] = {6.00, 7.00, 8.00, 10.00};
+
+	Mlim_Fstar = Mass_limit_bisection((float)Mhalo_min*0.999, (float)Mhalo_max*1.001, ALPHA_STAR, F_STAR10);
+
+	lnMhalo_min = log(Mhalo_min*0.999);
+	lnMhalo_max = log(Mhalo_max*1.001);
+	dlnMhalo = (lnMhalo_max - lnMhalo_min)/(double)(NBINS_LF - 1);
+
+	for (i_z=0; i_z<NUM_OF_REDSHIFT_FOR_LF; i_z++) {
+		for (i=0; i<NBINS_LF; i++) {
+			// generate interpolation arrays
+			lnMhalo_param[i] = lnMhalo_min + dlnMhalo*(double)i;
+			Mhalo_i = exp(lnMhalo_param[i]);
+
+	    	if (ALPHA_STAR > 0. && Mhalo_param[i] > Mlim_Fstar)
+    	     	Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+    		else if (ALPHA_STAR < 0. && Mhalo_param[i] < Mlim_Fstar)
+        		Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+    		else 
+        		Fstar = F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+
+			// parametrization of SFR
+			SFRparam = Mhalo_i * OMb/OMm * (double)Fstar * (double)(hubble(z_LF[i_z])*SperYR/t_STAR); // units of M_solar/year 
+
+			Muv_param[i] = 51.63 - 2.5*log10(SFRparam*Luv_over_SFR); // UV magnitude
+		}
+
+		gsl_spline_init(LF_spline, lnMhalo_param, Muv_param, NBINS_LF);
+
+		lnMhalo_lo = log(Mhalo_min);
+		lnMhalo_hi = log(Mhalo_max);
+		dlnM = (lnMhalo_hi - lnMhalo_lo)/(double)(NBINS_LF - 1);
+
+		for (i=0; i<NBINS_LF; i++) {
+			// calculate luminosity function
+			lnMhalo_i = lnMhalo_lo + dlnM*(double)i;
+			Mhalo_param[i] = exp(lnMhalo_i);
+		
+			Muv_1 = gsl_spline_eval(LF_spline, lnMhalo_i - delta_lnMhalo, LF_spline_acc);
+			Muv_2 = gsl_spline_eval(LF_spline, lnMhalo_i + delta_lnMhalo, LF_spline_acc);
+
+			dMuvdMhalo = (Muv_2 - Muv_1) / (2.*delta_lnMhalo * exp(lnMhalo_i));
+
+			log10phi[i] = log10( dNdM_st(z_LF[i_z],exp(lnMhalo_i)) * exp(-(M_TURN/Mhalo_param[i])) / fabs(dMuvdMhalo) );
+			if (isinf(log10phi[i]) || log10phi[i] < -20.) log10phi[i] = -30.;
+		}
+		
+
+        if(PRINT_FILES) {
+            sprintf(filename, "LF_estimate_%f_%f_%.6f.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2,z_LF[i_z]);
+            F=fopen(filename, "wt");
+            for (i=0; i<NBINS_LF; i++){
+                fprintf(F, "%e\t%e\t%e\n", Muv_param[i],log10phi[i],Mhalo_param[i]);
+            }
+            fclose(F);
+        }
+	}
 }
 
 void ComputeTsBoxes() {
@@ -1817,7 +1912,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     
     // New in v1.4
     if (USE_MASS_DEPENDENT_ZETA) {
-		if (USE_LIGHTCONE) {
+		if (USE_LIGHTCONE || USE_TS_FLUCT) {
 			FgtrM_st_SFR_z(REDSHIFT_SAMPLE,&(Splined_Fcoll));
 			mean_f_coll_st = (double)Splined_Fcoll;
 			}
@@ -3800,7 +3895,7 @@ void GeneratePS(int CO_EVAL, double AverageTb) {
     
     fftwf_plan plan;
     
-    int i,j,k,n_x, n_y, n_z;
+    int i,j,k,n_x, n_y, n_z, skip_zero_mode;;
     float k_x, k_y, k_z, k_mag;
     double ave;
     unsigned long long ct;
@@ -3849,27 +3944,34 @@ void GeneratePS(int CO_EVAL, double AverageTb) {
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 
-    // now construct the power spectrum file
-    for (n_x=0; n_x<HII_DIM; n_x++){
-        if (n_x>HII_MIDDLE)
-            k_x =(n_x-HII_DIM) * DELTA_K;  // wrap around for FFT convention
-            else
+	// If the light-cone 21cm PS is to be calculated, one should avoid the k(k_x = 0, k_y = 0, k_z) modes (see Datta et al. 2012).
+    if(!CO_EVAL) {
+     
+        // now construct the power spectrum file
+        for (n_x=0; n_x<HII_DIM; n_x++){
+            if (n_x>HII_MIDDLE)
+                k_x =(n_x-HII_DIM) * DELTA_K;  // wrap around for FFT convention
+            else 
                 k_x = n_x * DELTA_K;
-            
-                for (n_y=0; n_y<HII_DIM; n_y++){
+     
+            for (n_y=0; n_y<HII_DIM; n_y++){
+     
+                // avoid the k(k_x = 0, k_y = 0, k_z) modes
+                if(n_x != 0 && n_y != 0) { 
+     
                     if (n_y>HII_MIDDLE)
                         k_y =(n_y-HII_DIM) * DELTA_K;
-                    else
+                    else 
                         k_y = n_y * DELTA_K;
-                
+     
                     for (n_z=0; n_z<=HII_MIDDLE; n_z++){
                         k_z = n_z * DELTA_K;
-                    
+     
                         k_mag = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
-                    
+     
                         // now go through the k bins and update
-                        ct = 0;
-                        k_floor = 0;
+                        ct = 0; 
+                        k_floor = 0; 
                         k_ceil = k_first_bin_ceil;
                         while (k_ceil < k_max){
                             // check if we fal in this bin
@@ -3877,18 +3979,67 @@ void GeneratePS(int CO_EVAL, double AverageTb) {
                                 in_bin_ct[ct]++;
                                 p_box[ct] += pow(k_mag,3)*pow(cabs(deldel_T_LC[HII_C_INDEX(n_x, n_y, n_z)]), 2)/(2.0*PI*PI*VOLUME);
                                 // note the 1/VOLUME factor, which turns this into a power density in k-space
-                            
+     
                                 k_ave[ct] += k_mag;
                                 break;
-                            }
-                        
+                            }    
+     
                             ct++;
                             k_floor=k_ceil;
                             k_ceil*=k_factor;
+                        }    
+                    }    
+                }    
+            }
+        } // end looping through k box
+
+    }
+    else {
+
+        // Co-eval box, so should sample the entire cube
+
+        // now construct the power spectrum file
+        for (n_x=0; n_x<HII_DIM; n_x++){
+            if (n_x>HII_MIDDLE)
+                k_x =(n_x-HII_DIM) * DELTA_K;  // wrap around for FFT convention
+            else
+                k_x = n_x * DELTA_K;
+
+            for (n_y=0; n_y<HII_DIM; n_y++){
+
+                if (n_y>HII_MIDDLE)
+                    k_y =(n_y-HII_DIM) * DELTA_K;
+                else
+                    k_y = n_y * DELTA_K;
+
+                for (n_z=0; n_z<=HII_MIDDLE; n_z++){
+                    k_z = n_z * DELTA_K;
+
+                    k_mag = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    // now go through the k bins and update
+                    ct = 0;
+                    k_floor = 0;
+                    k_ceil = k_first_bin_ceil;
+                    while (k_ceil < k_max){
+                        // check if we fal in this bin
+                        if ((k_mag>=k_floor) && (k_mag < k_ceil)){
+                            in_bin_ct[ct]++;
+                            p_box[ct] += pow(k_mag,3)*pow(cabs(deldel_T_LC[HII_C_INDEX(n_x, n_y, n_z)]), 2)/(2.0*PI*PI*VOLUME);
+                            // note the 1/VOLUME factor, which turns this into a power density in k-space
+
+                            k_ave[ct] += k_mag;
+                            break;
                         }
+
+                        ct++;
+                        k_floor=k_ceil;
+                        k_ceil*=k_factor;
                     }
                 }
-    } // end looping through k box
+            }
+        } // end looping through k box
+    }
 }
 
 /**** Arrays declared and used *****/
@@ -4142,6 +4293,18 @@ void init_21cmMC_HII_save_fcoll() { // New in v1.4
     fcoll_SFR_array = calloc(HII_TOT_NUM_PIXELS,sizeof(float));
 }
 
+void init_LF_arrays() { // New in v1.4
+	
+	// allocate memory for arrays of halo mass and UV magnitude
+	lnMhalo_param = calloc((NBINS_LF),sizeof(double));
+	Muv_param = calloc((NBINS_LF),sizeof(double));
+	log10phi = calloc((NBINS_LF),sizeof(double));
+	Mhalo_param = calloc((NBINS_LF),sizeof(double));
+
+	LF_spline_acc = gsl_interp_accel_alloc();
+	LF_spline = gsl_spline_alloc(gsl_interp_cspline, NBINS_LF);
+}
+
 void destroy_21cmMC_HII_arrays(int skip_deallocate) {
     
     fftwf_free(deltax_unfiltered);
@@ -4351,7 +4514,7 @@ void destroy_21cmMC_Ts_arrays() {
     
 }
 
-void destroy_21cmMC_Ts_save_fcoll() {
+void destroy_21cmMC_Ts_save_fcoll() { // New in v1.4
 
 	int i;
 
@@ -4360,6 +4523,19 @@ void destroy_21cmMC_Ts_save_fcoll() {
     }
     free(fcoll_Xray_SFR_array);
 }
-void destroy_21cmMC_HII_save_fcoll() {
+
+void destroy_21cmMC_HII_save_fcoll() { // New in v1.4
 	free(fcoll_SFR_array);
+}
+
+void destroy_LF_arrays() { // New in v1.4
+	// free initialise of the interpolation
+	gsl_interp_accel_free(LF_spline_acc);
+	gsl_spline_free(LF_spline);
+
+	// free memory allocation
+	free(lnMhalo_param);
+	free(Muv_param);
+	free(log10phi);
+	free(Mhalo_param);
 }

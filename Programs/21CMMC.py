@@ -56,6 +56,10 @@ if __name__ == '__main__':
         # exponentially decrease below M_TURNOVER Msun, : fduty \propto e^(- M_TURNOVER / M)
         # See eq. (?) in Park et al....
         USE_MASS_DEPENDENT_ZETA = True 
+        
+        # New in v1.4
+        # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
+        IncludeLF = True
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
 	Include_Ts_fluc = True
@@ -66,7 +70,7 @@ if __name__ == '__main__':
 	# Decide whether to use light-cone boxes or co-eval boxes
 	# Note that the light-cone can only be generated along the z-direction (21cmFAST could do any arbitrary direction, this only does the z-direction). Should be 
 	# trivial if one wants to add support for light-cones along any direction.
-	IncludeLightCone = False
+	IncludeLightCone = True
 
 	# Use an interpolation table for the full box collapsed fraction for the computation of the IGM spin temperature. 
 	UseFcollTable = False
@@ -96,7 +100,7 @@ if __name__ == '__main__':
 	# This is different to 'CreateFcollTable' above
 
 	# Whether to include inhomogeneous recombinations in the computation
-	USE_INHOMO_RECO = True
+	USE_INHOMO_RECO = False#True
 	# This will enable inhomogeneous recombinations to be used, as included in the latest version of 21cmFAST
 	# This uses the Sobacchi & Mesinger (2014) approach for computing the sub-grid recombinations
 	### NOTE ###
@@ -121,7 +125,7 @@ if __name__ == '__main__':
 	# I do not know if it works for the x or y directions, I have not checked (I think it should though). I always work in the z-direction.
 	LOS_direction = 2
 
-	USE_GLOBAL_SIGNAL = False
+	USE_GLOBAL_SIGNAL = True
 	# Set to true if one wants to use the global signal rather than the 21cm PS to parameter sampling. Note, the mock observations will need to be changed accordingly
 	### NOTE ###
 	# If one wants to use the global signal, set IncludeLightCone = True. Setting this to true, will output the global signal at the redshift sampling of the spin temperature
@@ -136,13 +140,13 @@ if __name__ == '__main__':
 	# the default TsCalc_z = 6.0 corresponds basically to 200 MHz (in-built (default) Z_HEAT_MAX is z = 35 which corresponds to 40 MHz)	
 
 	# Define whether a fixed error on the 21cm global signal is to be used, or whether to read from file
-	GLOBAL_SIGNAL_FIXED_ERROR = False
+	GLOBAL_SIGNAL_FIXED_ERROR = True
 
 
 	# Setting this to true will keep all relevant statistical data (i.e. tau, xH vs etc., PS vs k at all redshift etc.)
 	# Separating the accepted/rejected points from the MCMC output can be done in post-processing (a separate script is provided to do so "ReadAllData.py"). 
 	# It was a bit too unwieldly to do internally, so I opted for externally dealing with separating the data.
-	KEEP_ALL_DATA = False
+	KEEP_ALL_DATA = True
 
 
 
@@ -163,14 +167,6 @@ if __name__ == '__main__':
 	X_RAY_TVIR_LB = 4.0
 	X_RAY_TVIR_UB = 6.0
 
-	# Setting IncludeAlpha = True, results in the sampling of a mass dependent ionising efficiency.
-	# This mass dependent ionising efficiency is defined as (Mass / M_vir)**(Alpha)
-	# - M_vir is the mass corresponding to the Virial Temperature (T_Vir) evaluated at the respective redshift (T_vir is defined to be redshift independent)
-	# - Alpha is a the power law. Alpha = 0 corresponds to a mass independent ionising efficiency, corresponding to the default 3 parameter reionisation model
-	# IncludeAlpha = True allows for a 4 parameter model to be sampled.
-	# *** NOTE *** As yet there is no support for the 4 parameter model. This needs to be added at some point down the line. I don't know what you will get if
-	# you set this to 'True' at the present time! (I think it works if Include_Ts_fluc is set to false, i.e. only co-eval boxes in the saturated spin temperature limit)
-	IncludeAlpha = False 
 
 	# Reionisation redshifts for the multi-z 21cm Fast "observations"
 	# Need to make sure that these boxes exist in the "Boxes" folder. If not, please generate new boxes
@@ -185,6 +181,10 @@ if __name__ == '__main__':
 	# This list allows the user to add additional redshifts to the list (co-eval boxes only) to improve the sampling for any of the priors (is not used for the likelihood calucation)
 	# Note: Adding any additional redshifts adds to the computation time, so this will make the code slower
 	Redshifts_For_Prior = []
+
+
+        # This list allows the user to use the redshift list for luminosity functions.
+        Redshifts_For_LF = []
 
 	# If the light-cone is being directly sampled, it outputs across the full redshift range, so don't need to pass it a redshift. Will populate the list 'Redshift'
 	# with the filenames of the mock observations constructing the light-cone to ensure the correct number of 21cm PS are used for the likelihood
@@ -206,6 +206,44 @@ if __name__ == '__main__':
 	# Generally speaking, the sampling should be fine enough that one redshift will be close enough to the corresponding redshift of interest.
 	# If not, and it is important for accuracy purposes, one can lower ZPRIME_STEP_FACTOR in HEAT_PARAMS.H
 	# Can determine the redshift sampling by running the test instance of the driver (./drive_21cmMC_streamlined 1.000000 1.000000 1 1 0 6.0), using the provided Walker file.
+
+        # New in v1.4
+        # Redshift list to compute Luminosity functions.
+        if IncludeLF is True:
+            # At the moment, this redshift list is not connected to Likelihood21cmFast.py and drive_21cmMC_streamlined.c. Sould be modifed. 
+            Redshifts_For_LF = ['6.000000', '7.000000', '8.000000', '10.000000']
+
+            multi_z_obs_Muv = [[0]*20 for i in range(len(Redshifts_For_LF))]
+            multi_z_obs_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
+            multi_z_obs_Error_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
+
+            for i in range(len(Redshifts_For_LF)):
+                obs_Muv_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(0,))
+                obs_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(1,))
+                obs_Error_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(2,))
+                for j in range(len(obs_Muv_values)):
+                    multi_z_obs_Muv[i][j] = obs_Muv_values[j]
+                    multi_z_obs_phi[i][j] = obs_phi_values[j]
+                    multi_z_obs_Error_phi[i][j] = obs_Error_phi_values[j]
+
+                #multi_z_obs_Muv.append(obs_Muv_values)
+                #multi_z_obs_phi.append(obs_phi_values)
+                #multi_z_obs_Error_phi.append(obs_Error_phi_values)
+                print 'i=',i,'length=',len(multi_z_obs_Muv[i])
+                print multi_z_obs_Muv
+
+            multi_z_obs_Muv[i] = numpy.array(multi_z_obs_Muv[i])
+            multi_z_obs_phi[i] = numpy.array(multi_z_obs_phi[i])
+            multi_z_obs_Error_phi[i] = numpy.array(multi_z_obs_Error_phi[i])
+            #multi_z_obs_Muv = numpy.array(multi_z_obs_Muv)
+            #multi_z_obs_phi = numpy.array(multi_z_obs_phi)
+            #multi_z_obs_Error_phi = numpy.array(multi_z_obs_Error_phi)
+        else:
+            multi_z_obs_Muv = []
+            multi_z_obs_phi = []
+            multi_z_obs_Error_phi = []
+            
+            
 
 
 	################### Enabling the addition of some observational priors ####################################
@@ -633,6 +671,7 @@ if __name__ == '__main__':
         # halo mass dependent ionizing efficiency is set.
                 param_legend['ZETA'] = False # Constant inizing efficiency turned off
                 param_legend['TVIR_MIN'] = False # The minimum halo mass hosting sources is defined by M_TURN, M_MIN = M_TURN/10.
+                param_legend['MFP'] = False # Mean free path turned off
         else:
                 param_legend['F_STAR10'] = False
                 param_legend['ALPHA_STAR'] = False
@@ -641,7 +680,7 @@ if __name__ == '__main__':
                 param_legend['M_TURN'] = False
                 #param_legend['t_STAR'] = False
 
-        if USE_MASS_DEPENDENT_ZETA is True and Include_Ts_fluc is False:
+        if USE_MASS_DEPENDENT_ZETA is True and Include_Ts_fluc is False and IncludeLF is False:
                 param_legend['t_STAR'] = False
         # New in v1.4 : (2) end
 
@@ -776,7 +815,7 @@ if __name__ == '__main__':
 	# Some other parameters (which in future can be varied)
 
 	# Star-formation time-scale as a fraction of the Hubble time
-	Fiducial_t_STAR = 0.5
+	#Fiducial_t_STAR = 0.5
 	# The fraction of baryons converted to stars
 	#Fiducial_F_STAR = 0.05
 
@@ -876,6 +915,9 @@ if __name__ == '__main__':
 		os.system(command)
 		command = "mkdir %s/WalkerData"%(Create_Output_Directory)
 		os.system(command)
+                if IncludeLF is True:
+		    command = "mkdir %s/LFData"%(Create_Output_Directory)
+		    os.system(command)
 
 	FlagOptions['KEEP_ALL_DATA_FILENAME'] = Create_Output_Directory
 
@@ -979,8 +1021,8 @@ if __name__ == '__main__':
 
 	chain = LikelihoodComputationChain()
 	
-	Likelihoodmodel21cmFast = Likelihood21cmFast_multiz(multi_z_mockobs_k,multi_z_mockobs_PS,multi_z_Error_k,multi_z_Error_PS,
-			Redshift,Redshifts_For_Prior,param_legend,Fiducial_Params,FlagOptions,param_string_names,NSplinePoints,TsCalc_z,foreground_cut,shot_noise_cut,IncludeLightCone,
+	Likelihoodmodel21cmFast = Likelihood21cmFast_multiz(Redshifts_For_LF,multi_z_obs_Muv,multi_z_obs_phi,multi_z_obs_Error_phi,multi_z_mockobs_k,multi_z_mockobs_PS,multi_z_Error_k,multi_z_Error_PS,
+			Redshift,Redshifts_For_Prior,param_legend,Fiducial_Params,FlagOptions,param_string_names,NSplinePoints,TsCalc_z,foreground_cut,shot_noise_cut,IncludeLightCone,IncludeLF,
 			ModUncert,PriorLegend,NFVals_QSODamping,PDFVals_QSODamping)	
 
 	chain.addLikelihoodModule(Likelihoodmodel21cmFast)
@@ -988,7 +1030,7 @@ if __name__ == '__main__':
 	chain.setup()
 
 	File_String = 'ReionModel_21cmFast_%s_%s'%(Telescope_Name,multiz_flag)
-	
+
 	sampler = CosmoHammerSampler(
                     params = params,
                     likelihoodComputationChain=chain,
@@ -1002,7 +1044,7 @@ if __name__ == '__main__':
                     burninIterations=0,
                     sampleIterations=1,
                     filethin = 1,
-                    threadCount=4,
+                    threadCount=1,
 	                reuseBurnin=False
 	           	)
 

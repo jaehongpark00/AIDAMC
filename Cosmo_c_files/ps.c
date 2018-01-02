@@ -2010,8 +2010,8 @@ void initialise_Xray_Fcollz_SFR_Conditional_table(int Nfilter, float z[], float 
     Mmax = RtoM(R[Nfilter-1]);
     Mlim_Fstar = Mass_limit_bisection(Mmin, Mmax, Alpha_star, Fstar10);
     initialiseSplinedSigmaM_Xray(Mmin,Mmax);
-    fprintf(stderr, "In initialise_Fcollz_SFR_Conditional_table: Rmin = %6.4f, Rmax = %6.4f, Mmin = %.4e, Mmax = %.4e\n",
-                                                                R[0],R[Nfilter-1],RtoM(R[0]),RtoM(R[Nfilter-1]));
+    //fprintf(stderr, "In initialise_Fcollz_SFR_Conditional_table: Rmin = %6.4f, Rmax = %6.4f, Mmin = %.4e, Mmax = %.4e\n",
+    //                                                            R[0],R[Nfilter-1],RtoM(R[0]),RtoM(R[Nfilter-1]));
     for (i=0; i<NSFR_low; i++) {
       overdense_val = log10(1. + overdense_small_low) + (double)i/((double)NSFR_low-1.)*(log10(1.+overdense_small_high)-log10(1.+overdense_small_low));
       log10_overdense_Xray_low_table[i] = overdense_val;
@@ -2022,7 +2022,7 @@ void initialise_Xray_Fcollz_SFR_Conditional_table(int Nfilter, float z[], float 
     }
     for (k=0; k < Nsteps_zp; k++) {
       i_tot = Nfilter*k;
-      printf("zp step = %d\n",k); //TEST
+      //printf("zp step = %d\n",k); //TEST
       //printf("R filter = %d\n",k);
       //Mmax = RtoM(R[k]);
       for (j=0; j < Nfilter; j++) {
