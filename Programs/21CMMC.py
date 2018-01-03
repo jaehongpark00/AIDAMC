@@ -38,7 +38,7 @@ if __name__ == '__main__':
 	# Whether or not one wants the inital conditions to be varied within the MCMC (needs to be True if one wants to jointly sample the cosmological parameters)
 	#### NOTE ####
 	# If this is set to true, none of the interpolation tables can be used as they are valid only for a single set of initial conditions.
-	GenerateNewICs = True
+	GenerateNewICs = False
 
 	# Create the list of cosmological values to vary. Parameter names entered here must match the naming convention below, otherwise they will not be detected and thus varied
 	# Fiducial values and parameter bounds for the cosmological parameters can be changed below
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 	# I do not know if it works for the x or y directions, I have not checked (I think it should though). I always work in the z-direction.
 	LOS_direction = 2
 
-	USE_GLOBAL_SIGNAL = True
+	USE_GLOBAL_SIGNAL = False
 	# Set to true if one wants to use the global signal rather than the 21cm PS to parameter sampling. Note, the mock observations will need to be changed accordingly
 	### NOTE ###
 	# If one wants to use the global signal, set IncludeLightCone = True. Setting this to true, will output the global signal at the redshift sampling of the spin temperature
@@ -229,8 +229,6 @@ if __name__ == '__main__':
                 #multi_z_obs_Muv.append(obs_Muv_values)
                 #multi_z_obs_phi.append(obs_phi_values)
                 #multi_z_obs_Error_phi.append(obs_Error_phi_values)
-                print 'i=',i,'length=',len(multi_z_obs_Muv[i])
-                print multi_z_obs_Muv
 
             multi_z_obs_Muv[i] = numpy.array(multi_z_obs_Muv[i])
             multi_z_obs_phi[i] = numpy.array(multi_z_obs_phi[i])
@@ -343,7 +341,8 @@ if __name__ == '__main__':
 			# between the mock observations and sampled 21cm PS should be the same)
 
 			# For the light-cone version of the code, use a text file containing the 21cm PS from the light-cones.		
-			MockObsFileName = 'LightCone21cmPS_FaintGalaxies_600Mpc_400'
+			#MockObsFileName = 'LightCone21cmPS_FaintGalaxies_600Mpc_400'
+			MockObsFileName = 'LightCone21cmPS_NewParams_500Mpc_256'
 		
 			# Note here, we are populating the list 'Redshift' with the filenames. The length of this is needed for ensuring the correct number of 21cm PS are used for the likelihood
 			# Re-using the same list filename means less conditions further down this script. The likelihood correctly accounts for it with the 'IncludeLightCone' flag.
@@ -388,8 +387,8 @@ if __name__ == '__main__':
 
 
 	# Set for the desired telescope ['SKA_halveddipoles_compact', 'HERA331'] corresponding to the file structure in "NoiseData"
-#	Telescope_Name = 'SKA'
-	Telescope_Name = 'HERA331'
+	Telescope_Name = 'SKA'
+	#Telescope_Name = 'HERA331'
 #	Telescope_Name = 'GlobalSignal_ConstantError'
 
 	ObsDuration = '1000hr'
@@ -445,7 +444,8 @@ if __name__ == '__main__':
 		if IncludeLightCone is True:
 
 			# *** NOTE *** Again, the names of these files should be placed in a text-file in ** increasing ** redshift order
-			MockObsFileName = 'LightCone21cmPS_Error_FaintGalaxies_%s_%s_600Mpc_400'%(Telescope_Name,ObsDuration)
+			#MockObsFileName = 'LightCone21cmPS_Error_FaintGalaxies_%s_%s_600Mpc_400'%(Telescope_Name,ObsDuration)
+			MockObsFileName = 'LightCone21cmPS_Error_NewParams_%s_%s_500Mpc_256'%(Telescope_Name,ObsDuration)
 		
 			filename = open('NoiseData/%s.txt'%(MockObsFileName), 'r') 
 			LightConeErrors = [line.rstrip('\n') for line in filename]
