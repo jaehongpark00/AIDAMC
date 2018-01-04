@@ -137,7 +137,6 @@ class Likelihood21cmFast_multiz(object):
             seq.append("0")
 
         StringArgument = string.join(seq,separator)
-        print 'StringArgument:',StringArgument
 
         ##### Now we need to create the individual walker file to be read by drive_21cmMC_streamlined #####
         
@@ -446,9 +445,6 @@ class Likelihood21cmFast_multiz(object):
                     if (LF_criterion == 0):
                         total_sum = total_sum + 1e15
                     else:
-                        #print 'iz =',iz
-                        #print 'Muv =',Muv_values_estimate
-                        #print 'log10phi= ',log10phi_values_estimate
                         LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
                         for ii in range(len(Muv_i)):
                             Muv_i_val = Muv_i[ii]

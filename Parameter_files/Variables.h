@@ -14,10 +14,10 @@
 #define TOTAL_COSMOLOGY_FILEPARAMS (int)7
 
 /* Allows the output of the global averaged quantities in the computation of the IGM spin temperature. Used for de-bugging purposes only */
-#define OUTPUT_AVE  1
+#define OUTPUT_AVE  0
 
 /* Whether or not to print the text files containing the neutral fraction or 21cm PS files */
-#define PRINT_FILES (int)1
+#define PRINT_FILES (int)0
 
 /* Whether or not to store the cubic 21cm boxes (brightness temperature) from the co-eval boxes */
 #define PRINT_COEVAL_21cmBoxes (int)0

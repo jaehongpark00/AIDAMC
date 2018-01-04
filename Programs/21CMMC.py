@@ -146,7 +146,7 @@ if __name__ == '__main__':
 	# Setting this to true will keep all relevant statistical data (i.e. tau, xH vs etc., PS vs k at all redshift etc.)
 	# Separating the accepted/rejected points from the MCMC output can be done in post-processing (a separate script is provided to do so "ReadAllData.py"). 
 	# It was a bit too unwieldly to do internally, so I opted for externally dealing with separating the data.
-	KEEP_ALL_DATA = True
+	KEEP_ALL_DATA = False
 
 
 
