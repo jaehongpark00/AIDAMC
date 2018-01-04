@@ -185,7 +185,7 @@ int main(int argc, char ** argv){
     OMl = (float)PARAM_COSMOLOGY_VALS[4];
     OMb = (float)PARAM_COSMOLOGY_VALS[5];
     POWER_INDEX = (float)PARAM_COSMOLOGY_VALS[6]; //power law on the spectral index, ns
-	printf("sig8 = %.4f, hlittle = %.4f, OMm = %.4f, OMl = %.4f, OMb = %.4f, POWER_INDEX = %.4f\n",SIGMA8, hlittle, OMm, OMl, OMb, POWER_INDEX);
+	//printf("sig8 = %.4f, hlittle = %.4f, OMm = %.4f, OMl = %.4f, OMb = %.4f, POWER_INDEX = %.4f\n",SIGMA8, hlittle, OMm, OMl, OMb, POWER_INDEX);
     
     
     
@@ -777,7 +777,7 @@ void ComputeTsBoxes() {
 	int arr_num;
 	float Splined_Fcoll,Splined_Fcollzp_mean,Splined_Fcollzpp_X_mean,zp_table,fcoll;
 
-	printf("F_STAR10 = %.4f, ALPHA_STAR = %.4f, F_ESC10 = %.4f, ALPHA_ESC = %.4e, M_MIN = %.4e, M_TURN = %.4e\n",F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_MIN, M_TURN); // TEST
+	//printf("F_STAR10 = %.4f, ALPHA_STAR = %.4f, F_ESC10 = %.4f, ALPHA_ESC = %.4e, M_MIN = %.4e, M_TURN = %.4e\n",F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_MIN, M_TURN); // TEST
     
     X_RAY_Tvir_BinWidth = (X_RAY_Tvir_UPPERBOUND - X_RAY_Tvir_LOWERBOUND)/( (double)X_RAY_Tvir_POINTS - 1. );
     
@@ -1925,7 +1925,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     }
 
     if (mean_f_coll_st*ION_EFF_FACTOR < HII_ROUND_ERR){ // way too small to ionize anything...
-        printf( "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n I will just declare everything to be neutral\n", mean_f_coll_st, f_coll_crit);
+        //printf( "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n I will just declare everything to be neutral\n", mean_f_coll_st, f_coll_crit);
 
         // find the neutral fraction
         if(USE_TS_FLUCT) {

@@ -17,7 +17,7 @@
 #define OUTPUT_AVE  0
 
 /* Whether or not to print the text files containing the neutral fraction or 21cm PS files */
-#define PRINT_FILES (int)0
+#define PRINT_FILES (int)1
 
 /* Whether or not to store the cubic 21cm boxes (brightness temperature) from the co-eval boxes */
 #define PRINT_COEVAL_21cmBoxes (int)0
