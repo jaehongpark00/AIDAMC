@@ -466,7 +466,8 @@ class Likelihood21cmFast_multiz(object):
                 filename = open('%s'%(LightconePSFilename), 'r') 
                 LightconePS = [line.rstrip('\n') for line in filename]
 
-                nf_vals[0] = 'Walker_%s.txt'%(StringArgument_other)
+                #nf_vals[0] = 'Walker_%s.txt'%(StringArgument_other)
+                nf_vals[0] = 0.#'Walker_%s.txt'%(StringArgument_other)
 
             else:
 
@@ -496,8 +497,8 @@ class Likelihood21cmFast_multiz(object):
                         StoredFileLayout.append("{%i}"%(i+1))
 
 #                nf_vals[len(AllRedshifts)] = 'Walker_%s.txt'%(StringArgument_other)
-                nf_vals[len(AllRedshifts)] = '%s'%(Individual_ID)
-                nf_vals[len(AllRedshifts)+1] = '%s'%(Individual_ID_2)
+            nf_vals[len(AllRedshifts)] = '%s'%(Individual_ID)
+            nf_vals[len(AllRedshifts)+1] = '%s'%(Individual_ID_2)
 
             # Note here that the usage of len(Redshift) uses the number of mock lightcone 21cm PS if IncludeLightCone was set to True.
             for i in range(len(self.Redshift)):                
@@ -564,7 +565,7 @@ class Likelihood21cmFast_multiz(object):
                     while i_check < len(Muv_values_estimate)-1:
                         if (Muv_values_estimate[i_check] > Muv_values_estimate[i_check+1]):
                             LF_criterion = 0
-                            print ("Found Muv list reversed\n")
+                            #print ("Found Muv list reversed\n")
                             break
                         i_check = i_check + 1
 
@@ -663,11 +664,12 @@ class Likelihood21cmFast_multiz(object):
             if self.PriorLegend['PlanckPrior'] is True:
                 total_sum = total_sum + np.square( ( PlanckTau_Mean - tau_value )/(PlanckTau_OneSigma) )
 
-            if self.IncludeLightCone is True:
-                nf_vals[1] = tau_value
-            else:
-                # it is len(AllRedshifts) as the indexing begins at zero
-                nf_vals[len(AllRedshifts)+2] = tau_value
+            #if self.IncludeLightCone is True:
+            #    nf_vals[1] = tau_value
+            #else:
+            #    # it is len(AllRedshifts) as the indexing begins at zero
+            #    nf_vals[len(AllRedshifts)+2] = tau_value
+            nf_vals[len(AllRedshifts)+2] = tau_value
 
         if self.PriorLegend['McGreerPrior'] is True:
 
@@ -808,10 +810,13 @@ class Likelihood21cmFast_multiz(object):
                 os.system(command)
 
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
-                command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                for j in range(len(self.Redshifts_For_LF)):
+                    command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                os.system(command)
             else:
-                command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz])
-            os.system(command)
+                for j in range(len(self.Redshifts_For_LF)):
+                    command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j])
+                os.system(command)
         else:
             
             command = "rm delTps_estimate_%s_*"%(StringArgument_other)
@@ -821,10 +826,13 @@ class Likelihood21cmFast_multiz(object):
             os.system(command)
 
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
-                command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                for j in range(len(self.Redshifts_For_LF)):
+                    command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+                os.system(command)
             else:
-                command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[iz])
-            os.system(command)
+                for j in range(len(self.Redshifts_For_LF)):
+                    command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j])
+                os.system(command)
 
         if OutputGlobalAve == 1:
             if self.FlagOptions['KEEP_ALL_DATA'] is True:

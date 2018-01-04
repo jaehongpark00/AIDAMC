@@ -59,7 +59,7 @@ if __name__ == '__main__':
         
         # New in v1.4
         # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
-        IncludeLF = True
+        IncludeLF = False
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
 	Include_Ts_fluc = True
