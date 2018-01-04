@@ -59,7 +59,7 @@ if __name__ == '__main__':
         
         # New in v1.4
         # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
-        IncludeLF = False
+        IncludeLF = True
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
 	Include_Ts_fluc = True
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 	# This is different to 'CreateFcollTable' above
 
 	# Whether to include inhomogeneous recombinations in the computation
-	USE_INHOMO_RECO = False#True
+	USE_INHOMO_RECO = True
 	# This will enable inhomogeneous recombinations to be used, as included in the latest version of 21cmFAST
 	# This uses the Sobacchi & Mesinger (2014) approach for computing the sub-grid recombinations
 	### NOTE ###
