@@ -46,7 +46,6 @@ float REDSHIFT;
 void init_21cmMC_Ts_arrays();
 void init_21cmMC_Ts_save_fcoll(); // New in v1.4
 void init_21cmMC_HII_arrays();
-void init_21cmMC_HII_save_fcoll(); // New in v1.4
 void init_21cmMC_TsSaveBoxes_arrays();
 void init_LF_arrays(); // New in v1.4
 
@@ -66,7 +65,6 @@ void ReadFcollTable();
 void destroy_21cmMC_Ts_arrays();
 void destroy_21cmMC_Ts_save_fcoll(); // New in v1.4
 void destroy_21cmMC_HII_arrays();
-void destroy_21cmMC_HII_save_fcoll(); // New in v1.4
 void destroy_21cmMC_TsSaveBoxes_arrays();
 void destroy_LF_arrays(); // New in v1.4
 
@@ -705,6 +703,8 @@ void ComputeLF() {
 			SFRparam = Mhalo_i * OMb/OMm * (double)Fstar * (double)(hubble(z_LF[i_z])*SperYR/t_STAR); // units of M_solar/year 
 
 			Muv_param[i] = 51.63 - 2.5*log10(SFRparam*Luv_over_SFR); // UV magnitude
+			// except if Muv value is nan or inf, but avoid error put the value as 10.
+			if ( isinf(Muv_param[i]) || isnan(Muv_param[i]) ) Muv_param[i] = 10.;
 		}
 
 		gsl_spline_init(LF_spline, lnMhalo_param, Muv_param, NBINS_LF);
@@ -724,7 +724,7 @@ void ComputeLF() {
 			dMuvdMhalo = (Muv_2 - Muv_1) / (2.*delta_lnMhalo * exp(lnMhalo_i));
 
 			log10phi[i] = log10( dNdM_st(z_LF[i_z],exp(lnMhalo_i)) * exp(-(M_TURN/Mhalo_param[i])) / fabs(dMuvdMhalo) );
-			if (isinf(log10phi[i]) || log10phi[i] < -20.) log10phi[i] = -30.;
+			if (isinf(log10phi[i]) || isnan(log10phi[i]) || log10phi[i] < -30.) log10phi[i] = -30.;
 		}
 		
 
@@ -1702,9 +1702,9 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     unsigned long long ct;
     
     float growth_factor,MFEEDBACK, R, pixel_mass, cell_length_factor, ave_N_min_cell, M_MIN, nf;
-    float f_coll_crit, erfc_denom, erfc_denom_cell, res_xH, Splined_Fcoll, sqrtarg, xHI_from_xrays, curr_dens, stored_R, massofscaleR;
+    float f_coll_crit, erfc_denom, erfc_denom_cell, res_xH, Splined_Fcoll, sqrtarg, xHI_from_xrays, curr_dens, stored_R, massofscaleR, ans;
      
-    double global_xH, global_step_xH, ST_over_PS, mean_f_coll_st, f_coll, f_coll_temp, f_coll_from_table, f_coll_from_table_1, f_coll_from_table_2;
+    double global_xH, global_step_xH, ST_over_PS, mean_f_coll_st, f_coll_min, f_coll, f_coll_temp, f_coll_from_table, f_coll_from_table_1, f_coll_from_table_2;
     
     double t_ast, dfcolldt, Gamma_R_prefactor, rec, dNrec;
     float growth_factor_dz, fabs_dtdz, ZSTEP, Gamma_R, z_eff;
@@ -1915,6 +1915,8 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
 		if (USE_LIGHTCONE || USE_TS_FLUCT) {
 			FgtrM_st_SFR_z(REDSHIFT_SAMPLE,&(Splined_Fcoll));
 			mean_f_coll_st = (double)Splined_Fcoll;
+			FgtrM_st_SFR_z(35.,&(ans)); //To avoid nan value of ST_over_PS, I set f_coll = f_coll_min, if f_coll = 0 
+			f_coll_min = (double)ans;
 			}
 		else {
         	mean_f_coll_st = FgtrM_st_SFR(REDSHIFT_SAMPLE,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
@@ -2090,7 +2092,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             if(USE_MASS_DEPENDENT_ZETA) {
                 initialiseGL_FcollSFR(NGL_SFR, M_TURN, massofscaleR);
                 initialiseFcollSFR_spline(REDSHIFT_SAMPLE,massofscaleR,M_TURN,ALPHA_STAR,ALPHA_ESC,F_STAR10,F_ESC10,Mlim_Fstar,Mlim_Fesc);
-				init_21cmMC_HII_save_fcoll();
             }
 			else {
             	erfc_denom = 2.*(pow(sigma_z0(M_MIN), 2) - pow(sigma_z0(massofscaleR), 2) );
@@ -2140,7 +2141,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                                 else { // the entrire cell belongs to a collpased halo...  this is rare...
                                     Splined_Fcoll =  1.0;
                                 }
-								fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM] = Splined_Fcoll;
+
                             }
                             else {
                             
@@ -2162,6 +2163,9 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                 } //  end loop through Fcoll box
             
                 f_coll /= (double) HII_TOT_NUM_PIXELS;
+				// To avoid ST_over_PS becoms nan when f_coll = 0, I set f_coll = FRACT_FLOAT_ERR.
+				//if (f_coll <= FRACT_FLOAT_ERR) f_coll = FRACT_FLOAT_ERR;
+				if (f_coll <= f_coll_min) f_coll = f_coll_min;
             }
             else {
                 
@@ -2191,7 +2195,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             }
             
             ST_over_PS = mean_f_coll_st/f_coll;
-			if(USE_MASS_DEPENDENT_ZETA) destroy_21cmMC_HII_save_fcoll();
             
             //////////////////////////////  MAIN LOOP THROUGH THE BOX ///////////////////////////////////
             // now lets scroll through the filtered box
@@ -2244,7 +2247,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                         if(USE_FCOLL_IONISATION_TABLE) {
                             // New in v1.4: current version do not support to use this option for the mass dependent ionizing efficiency.
                             if(USE_MASS_DEPENDENT_ZETA) {
-								/*
+								
                                 if(curr_dens < 0.99*Deltac) {
                                     // This is here as the interpolation tables have some issues very close
                                     // to Deltac. So lets just assume these voxels collapse anyway.
@@ -2255,10 +2258,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                                 else {
                                     Splined_Fcoll = 1.;
                                 }
-								if(Splined_Fcoll - fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM] > 1e-4) 
-									printf("x= %d, y=%d, z=%d, fcoll = %.4e, fcoll_array = %.4e\n", x,y,z,Splined_Fcoll,fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM]);
-								*/
-								Splined_Fcoll = fcoll_SFR_array[x + y*HII_DIM + z*HII_DIM*HII_DIM];
+								
                             }
                             // check for aliasing which can occur for small R and small cell sizes,
                             // since we are using the analytic form of the window function for speed and simplicity
@@ -2280,10 +2280,13 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
                         }
                         
                         f_coll = ST_over_PS * Splined_Fcoll;
+						if (f_coll <= f_coll_min) f_coll = f_coll_min;
+
                         
                         if (INHOMO_RECO){
                             dfcolldt = f_coll / t_ast;
                             Gamma_R = Gamma_R_prefactor * dfcolldt;
+
                             rec = (*((float *)N_rec_filtered + coeval_box_pos_FFT(Default_LOS_direction,x,y,slice_index_reducedLC))); // number of recombinations per mean baryon
                             rec /= (1. + curr_dens); // number of recombinations per baryon inside <R>
                         }
@@ -2412,7 +2415,6 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
             for (x=0; x<HII_DIM; x++){
                 for (y=0; y<HII_DIM; y++){
                     for (z=0; z<HII_DIM; z++){
-                    
                         curr_dens = 1.0 + (*((float *)deltax_unfiltered + HII_R_FFT_INDEX(x,y,z)));
                         z_eff = (1+REDSHIFT_SAMPLE) * pow(curr_dens, 1.0/3.0) - 1;
                         dNrec = splined_recombination_rate(z_eff, Gamma12[HII_R_INDEX(x,y,z)]) * fabs_dtdz * ZSTEP * (1 - xH[HII_R_INDEX(x,y,z)]);
@@ -4286,13 +4288,6 @@ void init_21cmMC_Ts_save_fcoll() { // New in v1.4
 
 }
 
-void init_21cmMC_HII_save_fcoll() { // New in v1.4
-
-	int i;
-
-    fcoll_SFR_array = calloc(HII_TOT_NUM_PIXELS,sizeof(float));
-}
-
 void init_LF_arrays() { // New in v1.4
 	
 	// allocate memory for arrays of halo mass and UV magnitude
@@ -4350,6 +4345,9 @@ void destroy_21cmMC_HII_arrays(int skip_deallocate) {
     	free(Overdense_spline_SFR);
         free(Fcoll_spline_SFR);
 		free(second_derivs_SFR);
+
+		gsl_interp_accel_free(FcollLow_spline_acc);
+		gsl_spline_free(FcollLow_spline);
 
 	}
     
@@ -4524,9 +4522,6 @@ void destroy_21cmMC_Ts_save_fcoll() { // New in v1.4
     free(fcoll_Xray_SFR_array);
 }
 
-void destroy_21cmMC_HII_save_fcoll() { // New in v1.4
-	free(fcoll_SFR_array);
-}
 
 void destroy_LF_arrays() { // New in v1.4
 	// free initialise of the interpolation
