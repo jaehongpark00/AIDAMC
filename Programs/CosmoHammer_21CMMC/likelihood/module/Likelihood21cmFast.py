@@ -554,6 +554,10 @@ class Likelihood21cmFast_multiz(object):
                     log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(1,))
                     Muv_values_estimate = Muv_values_estimate0[::-1]
                     log10phi_values_estimate = log10phi_values_estimate0[::-1]
+                    if np.isnan(log10phi_values_estimate) == True:
+                        log10phi_values_estimate = -20.
+                    if np.isinf(log10phi_values_estimate) == True:
+                        log10phi_values_estimate = -20.
 
                     LF_criterion = 1 #LF_criteion == 0: skip this chain.
                     # check whether Muv does not increase monotonically with halo mass. if not interpolation is not possible.
@@ -811,7 +815,7 @@ class Likelihood21cmFast_multiz(object):
                 os.system(command)
             else:
                 for j in range(len(self.Redshifts_For_LF)):
-                    command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j])
+                    command = "rm LF_estimate_%s_%s.txt"%(StringArgument_other,self.Redshifts_For_LF[j])
                 os.system(command)
         else:
             
@@ -827,7 +831,7 @@ class Likelihood21cmFast_multiz(object):
                 os.system(command)
             else:
                 for j in range(len(self.Redshifts_For_LF)):
-                    command = "rm LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j])
+                    command = "rm LF_estimate_%s_%s.txt"%(StringArgument_other,self.Redshifts_For_LF[j])
                 os.system(command)
 
         if OutputGlobalAve == 1:

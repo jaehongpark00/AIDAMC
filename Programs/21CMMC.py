@@ -563,7 +563,7 @@ if __name__ == '__main__':
         param_legend['ALPHA_STAR'] = True 
 
         Fiducial_AlphaStar = 0.4  
-        LowerBound_AlphaStar = -1.  
+        LowerBound_AlphaStar = -0.5
         UpperBound_AlphaStar = 1. 
 
         param_string_names.append('ALPHA_STAR')
@@ -574,7 +574,7 @@ if __name__ == '__main__':
         param_legend['F_ESC10'] = True
 
         Fiducial_Fesc10 = 0.1
-        LowerBound_Fesc10 = 0.
+        LowerBound_Fesc10 = 0.001
         UpperBound_Fesc10 = 1.
 
         param_string_names.append('F_ESC10')
@@ -586,7 +586,7 @@ if __name__ == '__main__':
 
         Fiducial_AlphaEsc = -0.4
         LowerBound_AlphaEsc = -1.
-        UpperBound_AlphaEsc = 1.
+        UpperBound_AlphaEsc = 0.5
 
         param_string_names.append('ALPHA_ESC')
         param_lower_limits.append(LowerBound_AlphaEsc)
@@ -595,9 +595,9 @@ if __name__ == '__main__':
         # Halo mass threshold for efficient star formation (in Msun)
         param_legend['M_TURN'] = True
 
-        Fiducial_Mturn = 9.     # logarithmic scale
-        LowerBound_Mturn = 7.
-        UpperBound_Mturn = 11.
+        Fiducial_Mturn = 8.69897     # logarithmic scale
+        LowerBound_Mturn = 8.
+        UpperBound_Mturn = 10.
 
         param_string_names.append('M_TURN')
         param_lower_limits.append(LowerBound_Mturn)
@@ -1042,7 +1042,7 @@ if __name__ == '__main__':
                     UpperBound_XRAY=X_RAY_TVIR_UB,
                     SpinTz=TsCalc_z,
                     burninIterations=0,
-                    sampleIterations=1,
+                    sampleIterations=2,
                     filethin = 1,
                     threadCount=1,
 	                reuseBurnin=False

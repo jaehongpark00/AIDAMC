@@ -837,7 +837,7 @@ double nu_tau_one_approx(double zp, double zpp, double x_e, double HI_filling_fa
     // check if too ionized
     if (x_e > 0.9999){
 		// Below is test line. After test comment out this line
-        fprintf(stderr,"Ts.c: WARNING: x_e value is too close to 1 for convergence in nu_tau_one\n");
+        //fprintf(stderr,"Ts.c: WARNING: x_e value is too close to 1 for convergence in nu_tau_one\n");
         return -1;
     }
     
