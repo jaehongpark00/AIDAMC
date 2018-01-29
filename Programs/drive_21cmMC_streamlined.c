@@ -739,7 +739,6 @@ void ComputeLF() {
             fclose(F);
         }
 	}
-	exit(0);
 }
 
 void ComputeTsBoxes() {
