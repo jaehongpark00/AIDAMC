@@ -439,17 +439,21 @@ class Likelihood21cmFast_multiz(object):
                             break
                         i_check = i_check + 1
 
-                    if (max(Muv_values_estimate) < min(self.Muv_values[iz])) or (min(Muv_values_estimate) > max(self.Muv_values[iz])):
+                    if (max(Muv_values_estimate) <= min(self.Muv_values[iz])) or (min(Muv_values_estimate) >= max(self.Muv_values[iz])):
                         LF_criterion = 0
                 
                     if (LF_criterion == 0):
-                        total_sum = total_sum + 1e15
+                        total_sum = total_sum + 10000000000.
                     else:
                         LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
                         for ii in range(len(Muv_i)):
                             Muv_i_val = Muv_i[ii]
                             log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
-                            total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            #total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            chi2_i = np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            if (np.isinf(chi2_i)):
+                                chi2_i = 100000.
+                            total_sum = total_sum + chi2_i
 
         else:
 
@@ -554,10 +558,6 @@ class Likelihood21cmFast_multiz(object):
                     log10phi_values_estimate0 = np.loadtxt('LF_estimate_%s_%s.txt'%(StringArgument_other,self.Redshifts_For_LF[iz]), usecols=(1,))
                     Muv_values_estimate = Muv_values_estimate0[::-1]
                     log10phi_values_estimate = log10phi_values_estimate0[::-1]
-                    if np.isnan(log10phi_values_estimate) == True:
-                        log10phi_values_estimate = -20.
-                    if np.isinf(log10phi_values_estimate) == True:
-                        log10phi_values_estimate = -20.
 
                     LF_criterion = 1 #LF_criteion == 0: skip this chain.
                     # check whether Muv does not increase monotonically with halo mass. if not interpolation is not possible.
@@ -569,17 +569,22 @@ class Likelihood21cmFast_multiz(object):
                             break
                         i_check = i_check + 1
 
-                    if (max(Muv_values_estimate) < min(self.Muv_values[iz])) or (min(Muv_values_estimate) > max(self.Muv_values[iz])):
+                    if (max(Muv_values_estimate) <= min(self.Muv_values[iz])) or (min(Muv_values_estimate) >= max(self.Muv_values[iz])):
                         LF_criterion = 0
                 
                     if (LF_criterion == 0):
-                        total_sum = total_sum + 1e15
+                        total_sum = total_sum + 10000000000.
                     else:
                         LFestimate_Spline = interpolate.splrep(Muv_values_estimate, log10phi_values_estimate,s=0)
                         for ii in range(len(Muv_i)):
                             Muv_i_val = Muv_i[ii]
                             log10phi_i_val = interpolate.splev(Muv_i_val,LFestimate_Spline,der=0)
-                            total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            #total_sum = total_sum + np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            chi2_i = np.square(phi_i[ii] - 10**(log10phi_i_val)) / (np.square(error_i[ii]))
+                            if (np.isinf(chi2_i)):
+                                chi2_i = 100000.
+                            total_sum = total_sum + chi2_i
+
 
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
                 StoredFileLayout = string.join(StoredFileLayout,separator_column)
@@ -812,11 +817,11 @@ class Likelihood21cmFast_multiz(object):
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
                 for j in range(len(self.Redshifts_For_LF)):
                     command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
-                os.system(command)
+                    os.system(command)
             else:
                 for j in range(len(self.Redshifts_For_LF)):
                     command = "rm LF_estimate_%s_%s.txt"%(StringArgument_other,self.Redshifts_For_LF[j])
-                os.system(command)
+                    os.system(command)
         else:
             
             command = "rm delTps_estimate_%s_*"%(StringArgument_other)
@@ -856,6 +861,8 @@ class Likelihood21cmFast_multiz(object):
             command = "rm WalkerCosmology_%s.txt"%(StringArgument_other)
             os.system(command) 
 
+        if(np.isinf(total_sum)):
+            total_sum = 10000000000.
         return -0.5*total_sum,nf_vals
 
     def computeLikelihood(self, ctx):

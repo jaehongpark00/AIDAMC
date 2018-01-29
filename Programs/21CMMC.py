@@ -205,7 +205,7 @@ if __name__ == '__main__':
 	# if Include_Ts_fluc = True the redshifts listed above must match with the redshifts sampled by the spin temperature algorithm. If not, then the code will fail.
 	# Generally speaking, the sampling should be fine enough that one redshift will be close enough to the corresponding redshift of interest.
 	# If not, and it is important for accuracy purposes, one can lower ZPRIME_STEP_FACTOR in HEAT_PARAMS.H
-	# Can determine the redshift sampling by running the test instance of the driver (./drive_21cmMC_streamlined 1.000000 1.000000 1 1 0 6.0), using the provided Walker file.
+	# Can determine the redshift sampling by running the test instance of the driver (./drive_21cmMC_streamlined 1.000000 1.000000 1 1 0 6.0 1), using the provided Walker file.
 
         # New in v1.4
         # Redshift list to compute Luminosity functions.
@@ -1042,7 +1042,7 @@ if __name__ == '__main__':
                     UpperBound_XRAY=X_RAY_TVIR_UB,
                     SpinTz=TsCalc_z,
                     burninIterations=0,
-                    sampleIterations=2,
+                    sampleIterations=1,
                     filethin = 1,
                     threadCount=1,
 	                reuseBurnin=False

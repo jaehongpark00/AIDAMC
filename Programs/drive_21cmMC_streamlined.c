@@ -5,7 +5,9 @@
 #include "heating_helper_progs.c"
 #include "gsl/gsl_sf_erf.h"
 #include "filter.c"
-
+// below two lines are TEST
+#include <stdlib.h>
+#include <time.h>
 /* 
  
  This is the main file for 21CMMC. This combines Ts.c, find_HII_bubbles.c, delta_T.c and redshift_interpolate_boxes.c (additionally, it includes init.c and perturb_field.c for varying the cosmology) 
@@ -15,7 +17,7 @@
  
  It is called from command line, with a fixed number of arguments (order is important). There is basically no error checking, as it would be too complicated to use that within the MCMC.
  
- An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 0 6.0 1 4
+ An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 0 6.0 1 
  
  First two indices are required for opening the Walker_ID1_ID2.txt and WalkerCosmology_ID1_ID2.txt which contain all the cosmology and astrophysical parameters (example included)
  
@@ -737,6 +739,7 @@ void ComputeLF() {
             fclose(F);
         }
 	}
+	exit(0);
 }
 
 void ComputeTsBoxes() {
@@ -1030,14 +1033,10 @@ void ComputeTsBoxes() {
         // main trapezoidal integral over z' (see eq. ? in Mesinger et al. 2009)
         zp = REDSHIFT*1.0001; //higher for rounding
 		// New in v1.4: count the number of zp steps
-		//Nsteps_zp = 0;
         while (zp < Z_HEAT_MAX) {
-			//Nsteps_zp += 1;
             zp = ((1+zp)*ZPRIME_STEP_FACTOR - 1);
-			//printf("i = %d, zp = %.4f\n",Nsteps_zp,zp);
 
 		}
-		//printf("Nsteps_zp = %d\n",Nsteps_zp);
         prev_zp = Z_HEAT_MAX;
         zp = ((1+zp)/ ZPRIME_STEP_FACTOR - 1);
         dzp = zp - prev_zp;
@@ -1059,7 +1058,6 @@ void ComputeTsBoxes() {
         }
     
         determine_zpp_max = zpp*1.001;
-		//printf("zpp_min = %.4f, zpp_max = %.4f\n",determine_zpp_min,determine_zpp_max);
     
         ////////////////////////////    Create and fill interpolation tables to be used by Ts.c   /////////////////////////////
 
@@ -1093,8 +1091,6 @@ void ComputeTsBoxes() {
           		zpp_edge[R_ct] = prev_zpp - (R_values[R_ct] - prev_R)*CMperMPC / drdz(prev_zpp); // cell size
           		zpp = (zpp_edge[R_ct]+prev_zpp)*0.5; // average redshift value of shell: z'' + 0.5 * dz''
           		redshift_interp_table[counter] = zpp;
-				//TEST
-				//printf("i = %d, zp = %.4f, zpp = %.4f\n",counter,zp_table, zpp);
           		counter += 1;
       			}
       		prev_zp = zp_table;
@@ -1253,7 +1249,8 @@ void ComputeTsBoxes() {
                 	// Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
 					FgtrM_st_SFR_X_z(zpp,&(Splined_Fcollzpp_X_mean));
                 	//ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
-                	ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX);
+                	//ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX);
+                	ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX)*fabs(dzpp_for_evolve);
                 	ST_over_PS[R_ct] *= Splined_Fcollzpp_X_mean;
 				}
            		else { 
