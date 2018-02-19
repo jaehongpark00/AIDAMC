@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
 
 	# Whether to include line of sight (z-direction only) redshift space distortions (RSDs)
-	INCLUDE_SUBCELL_RSDS = False
+	INCLUDE_SUBCELL_RSDS = True
 	# This is applied along the line of sight (z-direction)
 	# The preamble of drive_21cmMC_streamlined.c contains a few other parameters that are associated with RSDs. Change within drive_21cmMC_streamlined.c
 
@@ -523,19 +523,6 @@ if __name__ == '__main__':
 
 	# Setting up a dictionary of the available parameters to be sampled. Set "True" to allow this parameter to be varied, set "False" if it is to be held fixed
 
-        """
-	# Alpha (power-law). Note: Current version does not support a mass-dependent power law ionising efficiency to be used with the spin temperature fluctuations
-	param_legend['ALPHA'] = False	
-
-	# Set a fiducial value for the power law index alpha, and its lower and upper bounds. Not all will be used, depends on what options are set.
-	Fiducial_Alpha = 0.0
-	LowerBound_Alpha = -2.0
-	UpperBound_Alpha = 2.0
-
-	param_string_names.append('ALPHA')
-	param_lower_limits.append(LowerBound_Alpha)
-	param_upper_limits.append(UpperBound_Alpha)
-        """
         # Set fiducial values for parameters, and its lower and upper bounds. 
         # Not all will be used, depends on what options are set.
 
@@ -552,7 +539,7 @@ if __name__ == '__main__':
         param_legend['F_STAR10'] = True   
 
         Fiducial_Fstar10 = 0.05 
-        LowerBound_Fstar10 = 0. 
+        LowerBound_Fstar10 = 0.01
         UpperBound_Fstar10 = 1. 
 
         param_string_names.append('F_STAR10')
@@ -562,7 +549,7 @@ if __name__ == '__main__':
         # Power law index with halo mass
         param_legend['ALPHA_STAR'] = True 
 
-        Fiducial_AlphaStar = 0.4  
+        Fiducial_AlphaStar = 0.5
         LowerBound_AlphaStar = -0.5
         UpperBound_AlphaStar = 1. 
 
@@ -584,7 +571,7 @@ if __name__ == '__main__':
         # Power law index with halo mass
         param_legend['ALPHA_ESC'] = True
 
-        Fiducial_AlphaEsc = -0.4
+        Fiducial_AlphaEsc = -0.5
         LowerBound_AlphaEsc = -1.
         UpperBound_AlphaEsc = 0.5
 
@@ -689,7 +676,7 @@ if __name__ == '__main__':
 
 	# Set a fiducial value for L_X, and its lower and upper bounds. Not all will be used, depends on what options are set.
 	# Defined as log10(L_X). E.g. 40 = log10(10^40)
-	Fiducial_LX = 40.0
+	Fiducial_LX = 40.5
 	LowerBound_LX = 38.0
 	UpperBound_LX = 42.0
 
@@ -739,7 +726,7 @@ if __name__ == '__main__':
 	# Set up ranges and values for any of the cosmological values to be varied
 
 	# Sigma 8 (normalisation of the 21cm PS)
-	Fiducial_Sigma8 = 0.820000
+	Fiducial_Sigma8 = 0.810000
 	
 	LowerBound_SIGMA_8 = 0.7
 	UpperBound_SIGMA_8 = 0.95
@@ -754,7 +741,7 @@ if __name__ == '__main__':
 		param_legend['SIGMA_8'] = False		
 
 	# little h (value of H_0)
-	Fiducial_littleh = 0.700000#0.680000
+	Fiducial_littleh = 0.680000
 
 	LowerBound_littleh = 0.65
 	UpperBound_littleh = 0.71
@@ -770,7 +757,7 @@ if __name__ == '__main__':
 
 	# Omega matter, fraction of mass, and correspondingly, the dark energy fraction
 	# Note here that for Omega M, we implicitly assume Omega L = 1 - Omega M
-	Fiducial_Omega_M = 0.270000#0.310000
+	Fiducial_Omega_M = 0.310000
 
 	LowerBound_OMEGA_M = 0.25
 	UpperBound_OMEGA_M = 0.35
@@ -784,7 +771,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_M'] = False
 	# Omega baryon, the baryon component
-	Fiducial_Omega_b = 0.046#0.048
+	Fiducial_Omega_b = 0.048
 
 	LowerBound_OMEGA_b = 0.0470
 	UpperBound_OMEGA_b = 0.0490
@@ -798,7 +785,7 @@ if __name__ == '__main__':
 	else:
 		param_legend['OMEGA_b'] = False
 
-	Fiducial_ns = 0.96000#0.97000
+	Fiducial_ns = 0.97000
 
 	LowerBound_NS = 0.9
 	UpperBound_NS = 1.0
