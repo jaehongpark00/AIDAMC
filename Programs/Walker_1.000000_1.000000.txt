@@ -1,14 +1,14 @@
 FLAGS    1    1    0    0    1    1    1
 F_STAR10    0.05
-ALPHA_STAR    0.4
+ALPHA_STAR    0.5
 F_ESC10    0.1
-ALPHA_ESC    -0.4
+ALPHA_ESC    -0.5
 M_TURN    8.69897
 t_STAR    0.5
 ZETA    30.0
 MFP    15.0
 TVIR_MIN    4.69897
-L_X    40.0
+L_X    40.5
 NU_X_THRESH    500.0
 NU_X_BAND_MAX    2000.0
 NU_X_MAX    10000.0

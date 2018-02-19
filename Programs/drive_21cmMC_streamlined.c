@@ -29,9 +29,8 @@
  
  Sixth argument: Redshift to which Ts.c is evolved down to
 
- Seventh argument: (0, 1 or 2), calculates luminosity functions (1) or not (0). calculate luminosity functions only (2). (New in v1.4)
+ Seventh argument: (0 or 1), calculates luminosity functions (1) or not (0). (New in v1.4)
 
- Eighth argument; (0 or N), contains the 
  
 */
 

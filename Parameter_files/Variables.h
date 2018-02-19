@@ -99,6 +99,7 @@ double X_RAY_Tvir_LOWERBOUND, X_RAY_Tvir_UPPERBOUND,LOG10_X_RAY_Tvir_LOWERBOUND,
 float growth_zpp;
 float *zpp_interp_table;
 double F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, M_MIN;
+
 //double *log10_overdense_low_table, *log10_Fcollz_SFR_low_table;
 //float *Overdense_high_table, *Fcollz_SFR_high_table, *zpp_table;
 float *zpp_table;
