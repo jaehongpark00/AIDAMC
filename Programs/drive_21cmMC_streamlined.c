@@ -693,12 +693,8 @@ void ComputeLF() {
 			lnMhalo_param[i] = lnMhalo_min + dlnMhalo*(double)i;
 			Mhalo_i = exp(lnMhalo_param[i]);
 
-	    	if (ALPHA_STAR > 0. && Mhalo_param[i] > Mlim_Fstar)
-    	     	Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
-    		else if (ALPHA_STAR < 0. && Mhalo_param[i] < Mlim_Fstar)
-        		Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
-    		else 
-        		Fstar = F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+    	    Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+			if (Fstar > 1.) Fstar = 1;
 
 			// parametrization of SFR
 			SFRparam = Mhalo_i * OMb/OMm * (double)Fstar * (double)(hubble(z_LF[i_z])*SperYR/t_STAR); // units of M_solar/year 
