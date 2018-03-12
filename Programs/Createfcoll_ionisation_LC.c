@@ -169,7 +169,8 @@ int main(int argc, char ** argv){
     MFEEDBACK = M_MIN;
     
     if(EFF_FACTOR_PL_INDEX != 0.) {
-        mean_f_coll_st = FgtrM_st_PL(REDSHIFT,M_MIN,MFEEDBACK,EFF_FACTOR_PL_INDEX);
+        //mean_f_coll_st = FgtrM_st_PL(REDSHIFT,M_MIN,MFEEDBACK,EFF_FACTOR_PL_INDEX);
+        mean_f_coll_st = FgtrM_st(REDSHIFT,M_MIN);
     }
     else {
         mean_f_coll_st = FgtrM_st(REDSHIFT, M_MIN);
