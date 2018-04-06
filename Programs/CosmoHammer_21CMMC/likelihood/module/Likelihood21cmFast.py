@@ -505,16 +505,19 @@ class Likelihood21cmFast_multiz(object):
                 if self.IncludeLightCone is True:
                     k_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(0,)) 
                     PS_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(1,))
+                    Poisson_error_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(2,)) # Read possion errors
                 else:
                     # Read in the neutral fraction and 21cm PS for this parameter set and redshift
                     k_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(0,))
                     PS_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(1,))
+                    Poisson_error_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(2,))
 
 
                 splined_mock = interpolate.splrep(self.k_values[i],np.log10(self.PS_values[i]),s=0)
                 splined_error = interpolate.splrep(self.Error_k_values[i],np.log10(self.PS_Error[i]),s=0)
 
                 splined_model = interpolate.splrep(k_values_estimate,np.log10(PS_values_estimate),s=0)
+                splined_model_poisson_err = interpolate.splrep(k_values_estimate,np.log10(Poisson_error_estimate),s=0)
 
                 # Interpolating the mock and error PS in log space
                 for j in range(self.NSplinePoints):
@@ -523,6 +526,7 @@ class Likelihood21cmFast_multiz(object):
                     ErrorPS_val = 10**(interpolate.splev(kSpline[j],splined_error,der=0))
 
                     ModelPS_val = 10**(interpolate.splev(kSpline[j],splined_model,der=0))
+                    ModelPE_val = 10**(interpolate.splev(kSpline[j],splined_model_poisson_err,der=0))
 
                     # Check if there are any nan values for the 21cm PS
                     # A nan value implies a IGM neutral fraction of zero, that is, reionisation has completed and thus no 21cm signal
@@ -534,8 +538,10 @@ class Likelihood21cmFast_multiz(object):
 
                     if np.isnan(MockPS_val) == True:
                         MockPS_val = 0.0
+                    
 
-                    total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
+                    #total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
+                    total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2. + ModelPE_val**2)))                 
 
             # New in v1.4
             if self.IncludeLF is True:
