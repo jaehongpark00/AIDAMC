@@ -146,7 +146,7 @@ if __name__ == '__main__':
 	# Setting this to true will keep all relevant statistical data (i.e. tau, xH vs etc., PS vs k at all redshift etc.)
 	# Separating the accepted/rejected points from the MCMC output can be done in post-processing (a separate script is provided to do so "ReadAllData.py"). 
 	# It was a bit too unwieldly to do internally, so I opted for externally dealing with separating the data.
-	KEEP_ALL_DATA = False
+	KEEP_ALL_DATA = True
 
 
 
@@ -387,8 +387,8 @@ if __name__ == '__main__':
 
 
 	# Set for the desired telescope ['SKA_halveddipoles_compact', 'HERA331'] corresponding to the file structure in "NoiseData"
-	Telescope_Name = 'SKA'
-	#Telescope_Name = 'HERA331'
+	#Telescope_Name = 'SKA'
+	Telescope_Name = 'HERA331'
 #	Telescope_Name = 'GlobalSignal_ConstantError'
 
 	ObsDuration = '1000hr'
@@ -483,7 +483,7 @@ if __name__ == '__main__':
 	# NOTE: Be careful that the choices of "foreground_cut" and "shot_noise_cut" are contained within the ranges of 1) The mock observation PS 2) Error PS and 
 	# 3) the boxes to be sampled by the MCMC. For all, a spline interpolation is performed, therefore it is imperative that you do not define these ranges outside
 	# of the bounds of your data.
-	foreground_cut = 0.15
+	foreground_cut = 0.1
 	shot_noise_cut = 1.0
 	# Number of spline points to be used for the likelihood computation
 	NSplinePoints = 8
@@ -538,9 +538,9 @@ if __name__ == '__main__':
         # Stellar baryon fraction defined for 10^10 Msun halos
         param_legend['F_STAR10'] = True   
 
-        Fiducial_Fstar10 = 0.05 
-        LowerBound_Fstar10 = 0.01
-        UpperBound_Fstar10 = 1. 
+        Fiducial_Fstar10 = log10(0.05)
+        LowerBound_Fstar10 = -3
+        UpperBound_Fstar10 = 0 
 
         param_string_names.append('F_STAR10')
         param_lower_limits.append(LowerBound_Fstar10)
@@ -560,9 +560,9 @@ if __name__ == '__main__':
         # Escape fraction defined for 10^10 Msun halos
         param_legend['F_ESC10'] = True
 
-        Fiducial_Fesc10 = 0.1
-        LowerBound_Fesc10 = 0.001
-        UpperBound_Fesc10 = 1.
+        Fiducial_Fesc10 = log10(0.1)
+        LowerBound_Fesc10 = -3
+        UpperBound_Fesc10 = 0.
 
         param_string_names.append('F_ESC10')
         param_lower_limits.append(LowerBound_Fesc10)

@@ -17,7 +17,7 @@
  
  It is called from command line, with a fixed number of arguments (order is important). There is basically no error checking, as it would be too complicated to use that within the MCMC.
  
- An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 0 6.0 1 
+ An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 1 6.0 1 
  
  First two indices are required for opening the Walker_ID1_ID2.txt and WalkerCosmology_ID1_ID2.txt which contain all the cosmology and astrophysical parameters (example included)
  
@@ -344,9 +344,9 @@ int main(int argc, char ** argv){
     HII_EFF_FACTOR = PARAM_VALS[6];
 	// New in v1.4
     // Halo mass dependent ionizing efficiency parametrization.
-    F_STAR10 = PARAM_VALS[0];
+    F_STAR10 = pow(10.,PARAM_VALS[0]);
     ALPHA_STAR = PARAM_VALS[1];
-    F_ESC10 = PARAM_VALS[2];
+    F_ESC10 = pow(10.,PARAM_VALS[2]);
     ALPHA_ESC = PARAM_VALS[3];
     M_TURN = pow(10.,PARAM_VALS[4]);
     t_STAR = PARAM_VALS[5];
