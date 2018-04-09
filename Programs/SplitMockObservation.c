@@ -3,6 +3,7 @@
 #include "../Parameter_files/HEAT_PARAMS.H"
 #include "../Parameter_files/Variables.h"
 
+
 // This file splits the 21cm cubic boxes used for the light-cone into smaller boxes (necessary for MCMC sampling) and computes the 21cm PS for each box
 // This is useful if the light-cone box is to be sampled within 21CMMC
 
@@ -158,6 +159,7 @@ int main(int argc, char ** argv){
                 k_x = n_x * (TWOPI/CUBIC_BOX_LENGTH);
         
             for (n_y=0; n_y<DIM_MOCK_OBS_CUBIC; n_y++){
+				if(n_x != 0 && n_y != 0) {
                 if (n_y>DIM_MOCK_OBS_CUBIC_MID)
                     k_y =(n_y-(int)DIM_MOCK_OBS_CUBIC) * (TWOPI/CUBIC_BOX_LENGTH);
                 else
@@ -189,6 +191,7 @@ int main(int argc, char ** argv){
                     }
                 }
             }
+			}
         }
         
         sprintf(filename, "delTps_estimate_carvedup_section_%d_%i_%.0fMpc_lighttravel.txt",jj, HII_DIM, BOX_LEN);

@@ -536,6 +536,9 @@ class Likelihood21cmFast_multiz(object):
                     if np.isnan(ModelPS_val) == True:
                         ModelPS_val = 0.0
 
+                    if np.isnan(ModelPE_val) == True:
+                        ModelPE_val = 0.0
+
                     if np.isnan(MockPS_val) == True:
                         MockPS_val = 0.0
                     
