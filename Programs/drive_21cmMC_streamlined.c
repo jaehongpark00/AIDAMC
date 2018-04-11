@@ -693,7 +693,7 @@ void ComputeLF() {
 			lnMhalo_param[i] = lnMhalo_min + dlnMhalo*(double)i;
 			Mhalo_i = exp(lnMhalo_param[i]);
 
-    	    Fstar = 1./F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
+    	    Fstar = F_STAR10*pow(Mhalo_i/1e10,ALPHA_STAR);
 			if (Fstar > 1.) Fstar = 1;
 
 			// parametrization of SFR
@@ -1242,8 +1242,6 @@ void ComputeTsBoxes() {
            		if (USE_MASS_DEPENDENT_ZETA) { 
                 	// Using the interpolated values to update arrays of relevant quanties for the IGM spin temperature calculation
 					FgtrM_st_SFR_X_z(zpp,&(Splined_Fcollzpp_X_mean));
-                	//ST_over_PS[R_ct] = dzpp_for_evolve * pow(1+zpp, -X_RAY_SPEC_INDEX);
-                	//ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX);
                 	ST_over_PS[R_ct] = pow(1+zpp, -X_RAY_SPEC_INDEX)*fabs(dzpp_for_evolve);
                 	ST_over_PS[R_ct] *= Splined_Fcollzpp_X_mean;
 				}

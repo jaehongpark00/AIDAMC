@@ -538,7 +538,7 @@ if __name__ == '__main__':
         # Stellar baryon fraction defined for 10^10 Msun halos
         param_legend['F_STAR10'] = True   
 
-        Fiducial_Fstar10 = log10(0.05)
+        Fiducial_Fstar10 = -1.045757 # logarithmic scale: 0.09
         LowerBound_Fstar10 = -3
         UpperBound_Fstar10 = 0 
 
@@ -560,7 +560,7 @@ if __name__ == '__main__':
         # Escape fraction defined for 10^10 Msun halos
         param_legend['F_ESC10'] = True
 
-        Fiducial_Fesc10 = log10(0.1)
+        Fiducial_Fesc10 = -1.39794 # logarithmic scale: 0.04
         LowerBound_Fesc10 = -3
         UpperBound_Fesc10 = 0.
 
@@ -582,7 +582,7 @@ if __name__ == '__main__':
         # Halo mass threshold for efficient star formation (in Msun)
         param_legend['M_TURN'] = True
 
-        Fiducial_Mturn = 8.69897     # logarithmic scale
+        Fiducial_Mturn = 8.69897     # logarithmic scale: 8 x 10^10
         LowerBound_Mturn = 8.
         UpperBound_Mturn = 10.
 
@@ -596,7 +596,7 @@ if __name__ == '__main__':
         # Also, will be a free parameter with Luminosity function in the next version.
         param_legend['t_STAR'] = True
 
-        Fiducial_t_STAR = 0.5
+        Fiducial_t_STAR = 0.8
         LowerBound_t_STAR = 0.01
         UpperBound_t_STAR = 1.
 
