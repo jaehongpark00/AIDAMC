@@ -538,7 +538,7 @@ if __name__ == '__main__':
         # Stellar baryon fraction defined for 10^10 Msun halos
         param_legend['F_STAR10'] = True   
 
-        Fiducial_Fstar10 = -1.045757 # logarithmic scale: 0.09
+        Fiducial_Fstar10 = -1.045757491 # logarithmic scale: 0.09
         LowerBound_Fstar10 = -3
         UpperBound_Fstar10 = 0 
 
@@ -560,7 +560,7 @@ if __name__ == '__main__':
         # Escape fraction defined for 10^10 Msun halos
         param_legend['F_ESC10'] = True
 
-        Fiducial_Fesc10 = -1.39794 # logarithmic scale: 0.04
+        Fiducial_Fesc10 = -1.301029996 # logarithmic scale: 0.05
         LowerBound_Fesc10 = -3
         UpperBound_Fesc10 = 0.
 
