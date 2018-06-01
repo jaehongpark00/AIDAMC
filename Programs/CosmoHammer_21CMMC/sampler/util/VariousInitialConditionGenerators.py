@@ -15,7 +15,7 @@ def ICposition(start_positions_individual,lowerbounds,upperbounds,FiducialValues
         if (start_positions_individual[j] < lowerbounds[j] or start_positions_individual[j] > upperbounds[j]):
             new_start_parameter_logic = False
             while new_start_parameter_logic == False:
-                new_start_parameter = FiducialValues[j]+np.random.normal(size=1.0)*ParamWidths[j]
+                new_start_parameter = FiducialValues[j]+np.random.normal(size=int(1))*ParamWidths[j]
                 if (new_start_parameter > lowerbounds[j] and new_start_parameter < upperbounds[j]):
                     new_start_parameter_logic = True
 

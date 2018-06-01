@@ -45,21 +45,21 @@ if __name__ == '__main__':
 #	CosmologyToVary = ['SIGMA_8','littleh','OMEGA_M','OMEGA_b','NS']
 	CosmologyToVary = []
 
-        # New in v1.4
-        # Decide whether to use halo mass dependent ionizing efficiency. 
-        # The ionizing efficiency zeta is allowed to scale with the halo mass:
-        # \zeta = N_{\gammaUV} x f_{esc} x f_{\ast}
-        # where:
-        # f_{\ast} = STELLAR_BARYON_FRAC x (M_{halo}/10^10 M_{sol})^STELLAR_BARYON_PL
-        # f_{esc} = ESC_FRAC x (M_{halo}/10^10 M_{sol})^ESC_PL
-        # The number of halos hosting active galaxies (i.e. the duty cycle) is assumed to
-        # exponentially decrease below M_TURNOVER Msun, : fduty \propto e^(- M_TURNOVER / M)
-        # See eq. (?) in Park et al....
-        USE_MASS_DEPENDENT_ZETA = True 
+    # New in v1.4
+    # Decide whether to use halo mass dependent ionizing efficiency. 
+    # The ionizing efficiency zeta is allowed to scale with the halo mass:
+    # \zeta = N_{\gammaUV} x f_{esc} x f_{\ast}
+    # where:
+    # f_{\ast} = STELLAR_BARYON_FRAC x (M_{halo}/10^10 M_{sol})^STELLAR_BARYON_PL
+    # f_{esc} = ESC_FRAC x (M_{halo}/10^10 M_{sol})^ESC_PL
+    # The number of halos hosting active galaxies (i.e. the duty cycle) is assumed to
+    # exponentially decrease below M_TURNOVER Msun, : fduty \propto e^(- M_TURNOVER / M)
+    # See eq. (?) in Park et al....
+	USE_MASS_DEPENDENT_ZETA = True 
         
-        # New in v1.4
-        # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
-        IncludeLF = True
+    # New in v1.4
+    # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
+	IncludeLF = True
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
 	Include_Ts_fluc = True
@@ -191,10 +191,12 @@ if __name__ == '__main__':
 	### NOTE ### Redshifts added here must always be added in increasing order.
 	if IncludeLightCone is False:
 
-		Redshift = ['6.429094', '7.041489', '7.533692', '8.610322']
+#		Redshift = ['6.429094', '7.041489', '7.533692', '8.610322']
 
 #		Redshift = ['6.429094', '7.202319', '8.237142', '9.402521', '10.714930', '12.456770', '14.457590', '17.111031','20.219959','24.359810']
 #		Redshift = ['6.000594', '7.041489', '8.056021', '8.998578', '10.949220', '13.000420', '15.082080', '17.111023']	
+#		Redshift = ['6.000594', '7.041489', '8.056021', '8.998578', '10.949220', '13.000420']	
+		Redshift = ['5.900000', '7.041489', '8.056021', '8.998578', '10.949220', '13.000420']	
 #		Redshift = ['6.000594', '7.041489', '8.056021', '8.998578']	
 #		Redshift = ['6.000594']
 
@@ -207,39 +209,32 @@ if __name__ == '__main__':
 	# If not, and it is important for accuracy purposes, one can lower ZPRIME_STEP_FACTOR in HEAT_PARAMS.H
 	# Can determine the redshift sampling by running the test instance of the driver (./drive_21cmMC_streamlined 1.000000 1.000000 1 1 0 6.0 1), using the provided Walker file.
 
-        # New in v1.4
-        # Redshift list to compute Luminosity functions.
-        if IncludeLF is True:
-            # At the moment, this redshift list is not connected to Likelihood21cmFast.py and drive_21cmMC_streamlined.c. Sould be modifed. 
-            Redshifts_For_LF = ['6.000000', '7.000000', '8.000000', '10.000000']
+    # New in v1.4
+    # Redshift list to compute Luminosity functions.
+	if IncludeLF is True:
+		# At the moment, this redshift list is not connected to Likelihood21cmFast.py and drive_21cmMC_streamlined.c. Sould be modifed. 
+		Redshifts_For_LF = ['6.000000', '7.000000', '8.000000', '10.000000']
 
-            multi_z_obs_Muv = [[0]*20 for i in range(len(Redshifts_For_LF))]
-            multi_z_obs_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
-            multi_z_obs_Error_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
+		multi_z_obs_Muv = [[0]*20 for i in range(len(Redshifts_For_LF))]
+		multi_z_obs_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
+		multi_z_obs_Error_phi = [[0]*20 for i in range(len(Redshifts_For_LF))]
 
-            for i in range(len(Redshifts_For_LF)):
-                obs_Muv_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(0,))
-                obs_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(1,))
-                obs_Error_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(2,))
-                for j in range(len(obs_Muv_values)):
-                    multi_z_obs_Muv[i][j] = obs_Muv_values[j]
-                    multi_z_obs_phi[i][j] = obs_phi_values[j]
-                    multi_z_obs_Error_phi[i][j] = obs_Error_phi_values[j]
+		for i in range(len(Redshifts_For_LF)):
+			obs_Muv_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(0,))
+			obs_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(1,))
+			obs_Error_phi_values = numpy.loadtxt('MockObs/NewParams/LFs/LF_obs_Bouwens_%s.txt'%(Redshifts_For_LF[i]), usecols=(2,))
+			for j in range(len(obs_Muv_values)):
+				multi_z_obs_Muv[i][j] = obs_Muv_values[j]
+				multi_z_obs_phi[i][j] = obs_phi_values[j]
+				multi_z_obs_Error_phi[i][j] = obs_Error_phi_values[j]
 
-                #multi_z_obs_Muv.append(obs_Muv_values)
-                #multi_z_obs_phi.append(obs_phi_values)
-                #multi_z_obs_Error_phi.append(obs_Error_phi_values)
-
-            multi_z_obs_Muv[i] = numpy.array(multi_z_obs_Muv[i])
-            multi_z_obs_phi[i] = numpy.array(multi_z_obs_phi[i])
-            multi_z_obs_Error_phi[i] = numpy.array(multi_z_obs_Error_phi[i])
-            #multi_z_obs_Muv = numpy.array(multi_z_obs_Muv)
-            #multi_z_obs_phi = numpy.array(multi_z_obs_phi)
-            #multi_z_obs_Error_phi = numpy.array(multi_z_obs_Error_phi)
-        else:
-            multi_z_obs_Muv = []
-            multi_z_obs_phi = []
-            multi_z_obs_Error_phi = []
+		multi_z_obs_Muv[i] = numpy.array(multi_z_obs_Muv[i])
+		multi_z_obs_phi[i] = numpy.array(multi_z_obs_phi[i])
+		multi_z_obs_Error_phi[i] = numpy.array(multi_z_obs_Error_phi[i])
+	else:
+		multi_z_obs_Muv = []
+		multi_z_obs_phi = []
+		multi_z_obs_Error_phi = []
             
             
 
@@ -264,7 +259,7 @@ if __name__ == '__main__':
 	# NOTE: If the redshifts selected by the user ** is ** at the redshift of the prior, then interpolation is not required, and the prior will be used!
 
 	# 1) The Planck prior is modelled as a Gaussian: tau = 0.058 \pm 0.012
-	IncludePlanck = False
+	IncludePlanck = True
 	# 2) The McGreer et al. prior is a upper limit on the IGM neutral fraction at 5.9
 	# Modelled as a flat, unity prior at x_HI <= 0.06, and a one sided Gaussian at x_HI > 0.06 ( Gaussian of mean 0.06 and one sigma of 0.05 )
 	IncludeMcGreer = False
@@ -363,6 +358,7 @@ if __name__ == '__main__':
 
 #			MockObsFileName = 'MockObs_FaintGalaxies_PS_600Mpc'
 			MockObsFileName = 'MockObs_PS_200Mpc_EOS_FaintGalaxies'
+#			MockObsFileName = 'MockObs_PS_tau_e_TEST_EOS_FaintGalaxies'
 #			MockObsFileName = 'MockObs_BrightGalaxies_PS_600Mpc'
 #			ModelName = 'FaintGalaxies'
 			ModelName = 'EOS_FaintGalaxies'
@@ -460,8 +456,8 @@ if __name__ == '__main__':
 
 		else:
 
-#			NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
-			NoiseFileName = 'TotalError_%s_PS_200Mpc'%(Telescope_Name)
+			NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
+#			NoiseFileName = 'TotalError_%s_PS_tau_e_TEST'%(Telescope_Name)
 
 #			ModelName = 'FaintGalaxies'
 			ModelName = 'EOS_FaintGalaxies'
@@ -1016,7 +1012,7 @@ if __name__ == '__main__':
 
 	chain.setup()
 
-	File_String = 'ReionModel_21cmFast_%s_%s'%(Telescope_Name,multiz_flag)
+	File_String = 'ReionModel_LF_taue_%s_%s'%(Telescope_Name,multiz_flag)
 
 	sampler = CosmoHammerSampler(
                     params = params,

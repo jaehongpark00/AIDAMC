@@ -1,10 +1,10 @@
-FLAGS    1    1    0    0    1    1    1
-F_STAR10    -1.045757491
+FLAGS    0    0    0    0    0    0    1
+F_STAR10    -1.301029996
 ALPHA_STAR    0.5
-F_ESC10    -1.301029996
+F_ESC10    -1.0
 ALPHA_ESC    -0.5
 M_TURN    8.69897
-t_STAR    0.8
+t_STAR    0.5
 ZETA    30.0
 MFP    15.0
 TVIR_MIN    4.69897

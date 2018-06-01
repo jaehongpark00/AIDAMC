@@ -120,6 +120,7 @@ int main(int argc, char ** argv){
     float z_prime,prev_z_prime;
     
     unsigned long long ct;
+
     
     // Setting it to its maximum value
     INHOMO_RECO_R_BUBBLE_MAX = 50.0;
@@ -145,7 +146,7 @@ int main(int argc, char ** argv){
     /****** In doing it here, it enables the majority of the remaining code to be relatively straight-forward (i.e. doesn't change existing text-file structure etc.) ******/
     /****** This hasn't been rigorously checked yet. Need to look into this at some point... *******/
     //INCLUDE_ZETA_PL = atof(argv[5]);
-	USE_MASS_DEPENDENT_ZETA = atof(argv[5]); // New in v1.4
+	USE_MASS_DEPENDENT_ZETA = atoi(argv[5]); // New in v1.4
     
     // Redshift for which Ts.c is evolved down to, i.e. z'
     REDSHIFT = atof(argv[6]);
@@ -160,7 +161,7 @@ int main(int argc, char ** argv){
         WALKER_FILE_LENGTH = TOTAL_AVAILABLE_PARAMS + 1;
     }
     else {
-        WALKER_FILE_LENGTH = N_USER_REDSHIFT + TOTAL_AVAILABLE_PARAMS + 1;
+		WALKER_FILE_LENGTH = N_USER_REDSHIFT + TOTAL_AVAILABLE_PARAMS + 1;
     }
     
     // Create arrays to read in all the parameter data from the two separate walker files
