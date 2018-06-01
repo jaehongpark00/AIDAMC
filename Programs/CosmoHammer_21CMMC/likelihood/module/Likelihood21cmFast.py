@@ -611,9 +611,10 @@ class Likelihood21cmFast_multiz(object):
 
             # When the light-cone version is set, the values are writted in decreasing order, not increasing order
             # Therefore, reverse to be in increasing order (the interpolation/extrapolation is required to be in increasing order)
-            if z_Hist[0] > z_Hist[-1]:
-                z_Hist = z_Hist[::-1]
-                xH_Hist = xH_Hist[::-1]                            
+            if self.IncludeLightCone is True:
+                if z_Hist[0] > z_Hist[-1]:
+                    z_Hist = z_Hist[::-1]
+                    xH_Hist = xH_Hist[::-1]                            
 
         if (self.FlagOptions['KEEP_ALL_DATA'] is True or self.PriorLegend['PlanckPrior'] is True) and number_redshifts > 2:
 
@@ -676,6 +677,7 @@ class Likelihood21cmFast_multiz(object):
 
             # As the likelihood is computed in log space, the addition of the prior is added linearly to the existing chi^2 likelihood
             if self.PriorLegend['PlanckPrior'] is True:
+                print ("tau_e = %.6f\n"%tau_value)
                 total_sum = total_sum + np.square( ( PlanckTau_Mean - tau_value )/(PlanckTau_OneSigma) )
 
             #if self.IncludeLightCone is True:
