@@ -7,14 +7,14 @@
 /* The minimum file length containing the relevant astrophysical parameters, plus related information requisite for computing the 21cm signal. This number should remain fixed,
  unless additional parameters are to be added and suitably varied. This number ** does not ** include the redshift sampling (i.e. if the co-eval box option is set. That comes
  through at the command line, where number of redshifts is provided.   */
-#define TOTAL_AVAILABLE_PARAMS (int) (20)
+#define TOTAL_AVAILABLE_PARAMS (int) (19)
 
 /* A text file containing the cosmological parameters that can be varied within 21CMMC. This number is fixed, and includes the standard 6 parameter Lambda-CDM cosmological parameters,
  and also a random initial seed for generating the initial conditions (if this option is set). Note that OMEGA_L is assumed to be 1 - OMEGA_M, therefore it is unnecessary to vary OMEGA_L */
 #define TOTAL_COSMOLOGY_FILEPARAMS (int)7
 
 /* Allows the output of the global averaged quantities in the computation of the IGM spin temperature. Used for de-bugging purposes only */
-#define OUTPUT_AVE  0
+#define OUTPUT_AVE  1
 
 /* Whether or not to print the text files containing the neutral fraction or 21cm PS files */
 #define PRINT_FILES (int)1
