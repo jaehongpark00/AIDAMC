@@ -1,4 +1,4 @@
-FLAGS    0    0    0    0    0    0    1
+FLAGS    0    1    0    0    1    1    1
 F_STAR10    -1.301029996
 ALPHA_STAR    0.5
 F_ESC10    -1.0
