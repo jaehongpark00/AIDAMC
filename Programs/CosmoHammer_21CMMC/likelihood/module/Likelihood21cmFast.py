@@ -131,8 +131,11 @@ class Likelihood21cmFast_multiz(object):
         #StringArgument = string.join(seq,separator)
         #print 'StringArgument:',StringArgument
         
-        if self.IncludeLF is True:
+        #if self.IncludeLF is True:
+        if self.IncludeLF is 1:
             seq.append("1")
+        elif self.IncludeLF is 2:
+		    seq.append("2")
         else:
             seq.append("0")
 
@@ -408,7 +411,8 @@ class Likelihood21cmFast_multiz(object):
                         total_sum += np.square( (MockPS_val - ModelPS_val)/self.PS_Error[0][j] ) 
 
             # New in v1.4
-            if self.IncludeLF is True:
+            #if self.IncludeLF is True:
+            if self.IncludeLF:
                 # At the moment I just put the redshift list by hand, but this part should be modified.
                 #NUM_OF_REDSHIFTS_FOR_LF = 4
                 for iz in range(len(self.Redshifts_For_LF)):
@@ -483,18 +487,18 @@ class Likelihood21cmFast_multiz(object):
                     if self.IncludeLightCone is True:
                         k_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(0,)) 
                         PS_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(1,))
-                    else:
+                    elif not self.IncludeLF is 2:
                         k_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,AllRedshifts[i]), usecols=(0,))
                         PS_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,AllRedshifts[i]), usecols=(1,))
 
                     if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                        if not self.IncludeLF is 2:
+                            if i == 0:
+                                StoredStatisticalData.append(k_values_estimate)
+                                StoredFileLayout.append("{%i}"%(i))
 
-                        if i == 0:
-                            StoredStatisticalData.append(k_values_estimate)
-                            StoredFileLayout.append("{%i}"%(i))
-
-                        StoredStatisticalData.append(PS_values_estimate)
-                        StoredFileLayout.append("{%i}"%(i+1))
+                            StoredStatisticalData.append(PS_values_estimate)
+                            StoredFileLayout.append("{%i}"%(i+1))
 
 #                nf_vals[len(AllRedshifts)] = 'Walker_%s.txt'%(StringArgument_other)
             nf_vals[len(AllRedshifts)] = '%s'%(Individual_ID)
@@ -506,48 +510,49 @@ class Likelihood21cmFast_multiz(object):
                     k_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(0,)) 
                     PS_values_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(1,))
                     Poisson_error_estimate = np.loadtxt('%s'%(LightconePS[i]), usecols=(2,)) # Read possion errors
-                else:
+                if not self.IncludeLF is 2:
                     # Read in the neutral fraction and 21cm PS for this parameter set and redshift
                     k_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(0,))
                     PS_values_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(1,))
                     Poisson_error_estimate = np.loadtxt('delTps_estimate_%s_%s.txt'%(StringArgument_other,self.Redshift[i]), usecols=(2,))
 
+                if not self.IncludeLF is 2:
+                    splined_mock = interpolate.splrep(self.k_values[i],np.log10(self.PS_values[i]),s=0)
+                    splined_error = interpolate.splrep(self.Error_k_values[i],np.log10(self.PS_Error[i]),s=0)
 
-                splined_mock = interpolate.splrep(self.k_values[i],np.log10(self.PS_values[i]),s=0)
-                splined_error = interpolate.splrep(self.Error_k_values[i],np.log10(self.PS_Error[i]),s=0)
+                    splined_model = interpolate.splrep(k_values_estimate,np.log10(PS_values_estimate),s=0)
+                    splined_model_poisson_err = interpolate.splrep(k_values_estimate,np.log10(Poisson_error_estimate),s=0)
 
-                splined_model = interpolate.splrep(k_values_estimate,np.log10(PS_values_estimate),s=0)
-                splined_model_poisson_err = interpolate.splrep(k_values_estimate,np.log10(Poisson_error_estimate),s=0)
+                    # Interpolating the mock and error PS in log space
+                    for j in range(self.NSplinePoints):
 
-                # Interpolating the mock and error PS in log space
-                for j in range(self.NSplinePoints):
+                        MockPS_val = 10**(interpolate.splev(kSpline[j],splined_mock,der=0))
+                        ErrorPS_val = 10**(interpolate.splev(kSpline[j],splined_error,der=0))
 
-                    MockPS_val = 10**(interpolate.splev(kSpline[j],splined_mock,der=0))
-                    ErrorPS_val = 10**(interpolate.splev(kSpline[j],splined_error,der=0))
+                        ModelPS_val = 10**(interpolate.splev(kSpline[j],splined_model,der=0))
+                        ModelPE_val = 10**(interpolate.splev(kSpline[j],splined_model_poisson_err,der=0))
 
-                    ModelPS_val = 10**(interpolate.splev(kSpline[j],splined_model,der=0))
-                    ModelPE_val = 10**(interpolate.splev(kSpline[j],splined_model_poisson_err,der=0))
+                        # Check if there are any nan values for the 21cm PS
+                        # A nan value implies a IGM neutral fraction of zero, that is, reionisation has completed and thus no 21cm signal
+                        # Set the value of the 21cm PS to zero. Which results in the largest available difference (i.e. if you expect a signal
+                        # (i.e. non zero mock 21cm PS) but have no signal from the sampled model, then want a large difference for the 
+                        # chi-squared likelihood).
+                        if np.isnan(ModelPS_val) == True:
+                            ModelPS_val = 0.0
 
-                    # Check if there are any nan values for the 21cm PS
-                    # A nan value implies a IGM neutral fraction of zero, that is, reionisation has completed and thus no 21cm signal
-                    # Set the value of the 21cm PS to zero. Which results in the largest available difference (i.e. if you expect a signal
-                    # (i.e. non zero mock 21cm PS) but have no signal from the sampled model, then want a large difference for the 
-                    # chi-squared likelihood).
-                    if np.isnan(ModelPS_val) == True:
-                        ModelPS_val = 0.0
+                        if np.isnan(ModelPE_val) == True:
+                            ModelPE_val = 0.0
 
-                    if np.isnan(ModelPE_val) == True:
-                        ModelPE_val = 0.0
-
-                    if np.isnan(MockPS_val) == True:
-                        MockPS_val = 0.0
+                        if np.isnan(MockPS_val) == True:
+                            MockPS_val = 0.0
                     
 
-                    #total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
-                    total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2. + ModelPE_val**2)))                 
+                        #total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2.)))                 
+                        total_sum += np.square((MockPS_val - ModelPS_val)/(np.sqrt(ErrorPS_val**2. + (self.ModUncert*ModelPS_val)**2. + ModelPE_val**2)))                 
 
             # New in v1.4
-            if self.IncludeLF is True:
+            #if self.IncludeLF is True:
+            if self.IncludeLF:
                 # At the moment I just put the redshift list by hand, but this part should be modified.
                 #NUM_OF_REDSHIFTS_FOR_LF = 4
                 for iz in range(len(self.Redshifts_For_LF)):
@@ -677,7 +682,6 @@ class Likelihood21cmFast_multiz(object):
 
             # As the likelihood is computed in log space, the addition of the prior is added linearly to the existing chi^2 likelihood
             if self.PriorLegend['PlanckPrior'] is True:
-                print ("tau_e = %.6f\n"%tau_value)
                 total_sum = total_sum + np.square( ( PlanckTau_Mean - tau_value )/(PlanckTau_OneSigma) )
 
             #if self.IncludeLightCone is True:
@@ -835,8 +839,9 @@ class Likelihood21cmFast_multiz(object):
                     os.system(command)
         else:
             
-            command = "rm delTps_estimate_%s_*"%(StringArgument_other)
-            os.system(command)
+            if not self.IncludeLF is 2:
+                command = "rm delTps_estimate_%s_*"%(StringArgument_other)
+                os.system(command)
 
             command = "rm NeutralFraction_%s_*"%(StringArgument_other)
             os.system(command)

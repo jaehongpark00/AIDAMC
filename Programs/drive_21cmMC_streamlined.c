@@ -106,6 +106,7 @@ unsigned long long coeval_box_pos_FFT(int LOS_dir,int xi,int yi,int zi){
 }
 
 int main(int argc, char ** argv){
+	printf("begin, time=%06.2f min\n", (double)clock()/CLOCKS_PER_SEC/60.0);
     
     // The standard build of 21cmFAST requires openmp for the FFTs. 21CMMC does not, however, for some computing architectures, I found it important to include this
     omp_set_num_threads(1);
@@ -153,7 +154,7 @@ int main(int argc, char ** argv){
 
 	// New in v1.4
 	// Flag set to 1 if Luminosity functions are to be used together with outputs from 21cm signals.
-	// Flag set to 2 if one wants to compute Luminosity functions only.
+	// Flag set to 2 if one wants to compute Luminosity functions with tau_e, i.e. without PS
 	USE_LF = atof(argv[7]);
     
     // Determines the lenght of the walker file, given the values set by TOTAL_AVAILABLE_PARAMS in Variables.h and the number of redshifts
@@ -662,6 +663,8 @@ int main(int argc, char ** argv){
     fftwf_free(N_rec_filtered);
     fftwf_free(z_re);
     fftwf_free(Gamma12);
+
+	printf("END, time=%06.2f min\n", (double)clock()/CLOCKS_PER_SEC/60.0);
 
     return 0;
 }
@@ -2873,6 +2876,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
         aveTb[sample_index] = ave;
     }
     /////////////////////////////  PRINT OUT THE POWERSPECTRUM  ///////////////////////////////
+	if(USE_LF != 2) { // Do NOT compute PS, when wants constraints using (LF + tau_e).
 
     if(USE_LIGHTCONE) {
             
@@ -3065,6 +3069,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
 
     //////////////////////////// End of perform 'delta_T.c' /////////////////////////////////////
     }
+	} // Do NOT compute PS, when wants constraints using (LF + tau_e).
 
     free(LOS_index);
     free(slice_index);

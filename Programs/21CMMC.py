@@ -58,11 +58,15 @@ if __name__ == '__main__':
 	USE_MASS_DEPENDENT_ZETA = True 
         
     # New in v1.4
-    # if 'IncludeLF' is True, one can use a joint constraint with luminosity functions.
-	IncludeLF = True
+    # if 'IncludeLF = 0', do NOT use luminosity functions to constraints.
+	# if 'IncludeLF = 1', USE luminosity functions to constraints.
+	# if 'IncludeLF = 2', USE luminosity functions + Planck prior + (McGreer prior).
+	# NOTE # if set 'IncludeLF = 2', do NOT use PS.
+	# NOTE # even if set 'IncludeLF = 2', the driver file still computes 'ComputeIonisationBoxes' to calculate tau_e.
+	IncludeLF = 2
 
 	# Performs the full evolution (Ts.c) of the IGM during reionisation and heating epoch. Setting to false reverts to saturated spin temperature limit (Ts >> Tcmb).
-	Include_Ts_fluc = True
+	Include_Ts_fluc = False
 
 	# If the full spin temperature computation is to be performed, a redshift must be provided to which to perform the evolution down to.
 	TsCalc_z = 6.0
@@ -70,7 +74,7 @@ if __name__ == '__main__':
 	# Decide whether to use light-cone boxes or co-eval boxes
 	# Note that the light-cone can only be generated along the z-direction (21cmFAST could do any arbitrary direction, this only does the z-direction). Should be 
 	# trivial if one wants to add support for light-cones along any direction.
-	IncludeLightCone = True
+	IncludeLightCone = False
 
 	# Use an interpolation table for the full box collapsed fraction for the computation of the IGM spin temperature. 
 	UseFcollTable = False
@@ -100,7 +104,7 @@ if __name__ == '__main__':
 	# This is different to 'CreateFcollTable' above
 
 	# Whether to include inhomogeneous recombinations in the computation
-	USE_INHOMO_RECO = True
+	USE_INHOMO_RECO = False
 	# This will enable inhomogeneous recombinations to be used, as included in the latest version of 21cmFAST
 	# This uses the Sobacchi & Mesinger (2014) approach for computing the sub-grid recombinations
 	### NOTE ###
@@ -113,7 +117,7 @@ if __name__ == '__main__':
 
 
 	# Whether to include line of sight (z-direction only) redshift space distortions (RSDs)
-	INCLUDE_SUBCELL_RSDS = True
+	INCLUDE_SUBCELL_RSDS = False
 	# This is applied along the line of sight (z-direction)
 	# The preamble of drive_21cmMC_streamlined.c contains a few other parameters that are associated with RSDs. Change within drive_21cmMC_streamlined.c
 
@@ -211,7 +215,8 @@ if __name__ == '__main__':
 
     # New in v1.4
     # Redshift list to compute Luminosity functions.
-	if IncludeLF is True:
+	#if IncludeLF is True:
+	if IncludeLF:
 		# At the moment, this redshift list is not connected to Likelihood21cmFast.py and drive_21cmMC_streamlined.c. Sould be modifed. 
 		Redshifts_For_LF = ['6.000000', '7.000000', '8.000000', '10.000000']
 
@@ -262,7 +267,7 @@ if __name__ == '__main__':
 	IncludePlanck = True
 	# 2) The McGreer et al. prior is a upper limit on the IGM neutral fraction at 5.9
 	# Modelled as a flat, unity prior at x_HI <= 0.06, and a one sided Gaussian at x_HI > 0.06 ( Gaussian of mean 0.06 and one sigma of 0.05 )
-	IncludeMcGreer = False
+	IncludeMcGreer = True
 	# 3) The Greig et al. prior is computed directly from the PDF of the IGM neutral fraction for the Small HII reionisation simulation
 	IncludeGreig = False
 	
@@ -352,29 +357,29 @@ if __name__ == '__main__':
 				multi_z_mockobs_PS.append(mockobs_PS_values)		
 
 		else:
-
+			if not IncludeLF is 2:
 			### NOTE ###
 			# If Include_Ts_fluc is set, the user must ensure that the co-eval redshift to be sampled (set by the Redshift list above) is to be sampled by the code.			
 
-#			MockObsFileName = 'MockObs_FaintGalaxies_PS_600Mpc'
-			MockObsFileName = 'MockObs_PS_200Mpc_EOS_FaintGalaxies'
-#			MockObsFileName = 'MockObs_PS_tau_e_TEST_EOS_FaintGalaxies'
-#			MockObsFileName = 'MockObs_BrightGalaxies_PS_600Mpc'
-#			ModelName = 'FaintGalaxies'
-			ModelName = 'EOS_FaintGalaxies'
-#			ModelName = 'BrightGalaxies'
-#			BoxType = 'Co-Eval'
-			BoxType = 'Co-Eval'			
+#				MockObsFileName = 'MockObs_FaintGalaxies_PS_600Mpc'
+				MockObsFileName = 'MockObs_PS_200Mpc_EOS_FaintGalaxies'
+#				MockObsFileName = 'MockObs_PS_tau_e_TEST_EOS_FaintGalaxies'
+#				MockObsFileName = 'MockObs_BrightGalaxies_PS_600Mpc'
+#				ModelName = 'FaintGalaxies'
+				ModelName = 'EOS_FaintGalaxies'
+#				ModelName = 'BrightGalaxies'
+#				BoxType = 'Co-Eval'
+				BoxType = 'Co-Eval'			
 
-			for i in range(len(Redshift)):		
-				mockobs_k_values = numpy.loadtxt('MockObs/%s/%s/%s_z%s.txt'%(ModelName,BoxType,MockObsFileName,Redshift[i]), usecols=(0,))
-				mockobs_PS_values = numpy.loadtxt('MockObs/%s/%s/%s_z%s.txt'%(ModelName,BoxType,MockObsFileName,Redshift[i]), usecols=(1,))
+				for i in range(len(Redshift)):		
+					mockobs_k_values = numpy.loadtxt('MockObs/%s/%s/%s_z%s.txt'%(ModelName,BoxType,MockObsFileName,Redshift[i]), usecols=(0,))
+					mockobs_PS_values = numpy.loadtxt('MockObs/%s/%s/%s_z%s.txt'%(ModelName,BoxType,MockObsFileName,Redshift[i]), usecols=(1,))
 
-				multi_z_mockobs_k.append(mockobs_k_values)
-				multi_z_mockobs_PS.append(mockobs_PS_values)
-
-	multi_z_mockobs_k = numpy.array(multi_z_mockobs_k)
-	multi_z_mockobs_PS = numpy.array(multi_z_mockobs_PS)
+					multi_z_mockobs_k.append(mockobs_k_values)
+					multi_z_mockobs_PS.append(mockobs_PS_values)
+	if not IncludeLF is 2:
+		multi_z_mockobs_k = numpy.array(multi_z_mockobs_k)
+		multi_z_mockobs_PS = numpy.array(multi_z_mockobs_PS)
 
 
 
@@ -455,25 +460,25 @@ if __name__ == '__main__':
 				multi_z_Error_PS.append(Error_PS_values)
 
 		else:
+			if not IncludeLF is 2:
+				NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
+#			    NoiseFileName = 'TotalError_%s_PS_tau_e_TEST'%(Telescope_Name)
 
-			NoiseFileName = 'TotalError_%s_PS_600Mpc'%(Telescope_Name)
-#			NoiseFileName = 'TotalError_%s_PS_tau_e_TEST'%(Telescope_Name)
+#			    ModelName = 'FaintGalaxies'
+				ModelName = 'EOS_FaintGalaxies'
+				BoxType = 'Co-Eval'
 
-#			ModelName = 'FaintGalaxies'
-			ModelName = 'EOS_FaintGalaxies'
-			BoxType = 'Co-Eval'
+				for i in range(len(Redshift)):
+#				    Error_k_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(0,))
+#				    Error_PS_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(1,))
+					Error_k_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(0,))
+					Error_PS_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(1,))
 
-			for i in range(len(Redshift)):
-#				Error_k_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(0,))
-#				Error_PS_values = numpy.loadtxt('NoiseData/FaintGalaxies/%s/%s_z%s_%s.txt'%(BoxType,NoiseFileName,Redshift[i],ObsDuration), usecols=(1,))
-				Error_k_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(0,))
-				Error_PS_values = numpy.loadtxt('NoiseData/%s/%s/%s_z%s_%s_%s.txt'%(ModelName,BoxType,NoiseFileName,Redshift[i],ModelName,ObsDuration), usecols=(1,))
-
-				multi_z_Error_k.append(Error_k_values)
-				multi_z_Error_PS.append(Error_PS_values)
-		
-	multi_z_Error_k = numpy.array(multi_z_Error_k)
-	multi_z_Error_PS = numpy.array(multi_z_Error_PS)	
+					multi_z_Error_k.append(Error_k_values)
+					multi_z_Error_PS.append(Error_PS_values)
+	if not IncludeLF is 2:
+	    multi_z_Error_k = numpy.array(multi_z_Error_k)
+	    multi_z_Error_PS = numpy.array(multi_z_Error_PS)	
 
 	# k-space cut to be made to the likelihood fitting corresponding to the removal of foregrounds
 	# NOTE: Be careful that the choices of "foreground_cut" and "shot_noise_cut" are contained within the ranges of 1) The mock observation PS 2) Error PS and 
@@ -663,7 +668,7 @@ if __name__ == '__main__':
                 param_legend['M_TURN'] = False
                 #param_legend['t_STAR'] = False
 
-        if USE_MASS_DEPENDENT_ZETA is True and Include_Ts_fluc is False and IncludeLF is False:
+        if USE_MASS_DEPENDENT_ZETA is True and Include_Ts_fluc is False and IncludeLF is 0:
                 param_legend['t_STAR'] = False
         # New in v1.4 : (2) end
 
@@ -898,7 +903,7 @@ if __name__ == '__main__':
 		os.system(command)
 		command = "mkdir %s/WalkerData"%(Create_Output_Directory)
 		os.system(command)
-                if IncludeLF is True:
+        if IncludeLF:
 		    command = "mkdir %s/LFData"%(Create_Output_Directory)
 		    os.system(command)
 
