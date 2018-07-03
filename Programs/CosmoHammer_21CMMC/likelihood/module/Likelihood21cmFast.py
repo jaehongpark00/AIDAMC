@@ -827,10 +827,8 @@ class Likelihood21cmFast_multiz(object):
             for ii in range(len(z_obs)):
                 if emissivity_model[ii] <= emissivity_obs[ii]:
                     total_sum = total_sum + 0.0 # Add zero, as we use the observed emissivity is a upper limit.
-                    print ('Emissivity is samll\n')
                 else:
                     total_sum = total_sum + np.square( ( emissivity_obs[ii] - emissivity_model[ii] )/(emissivity_error[ii]) )
-                    print ('Emissivity: chi2 = %f\n'%(np.square( ( emissivity_obs[ii] - emissivity_model[ii] )/(emissivity_error[ii]) )))
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
                 command = "mv Emissivity_%s_%s.txt %s/EmissivityData/"%(Individual_ID,Decimal(repr(params[0])).quantize(SIXPLACES),self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
             else:
