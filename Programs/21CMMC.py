@@ -548,7 +548,7 @@ if __name__ == '__main__':
         # Stellar baryon fraction defined for 10^10 Msun halos
         param_legend['F_STAR10'] = True   
 
-        Fiducial_Fstar10 = -1.045757491 # logarithmic scale: 0.09
+        Fiducial_Fstar10 = -1.301029996 # logarithmic scale: 0.05
         LowerBound_Fstar10 = -3
         UpperBound_Fstar10 = 0 
 
@@ -570,7 +570,7 @@ if __name__ == '__main__':
         # Escape fraction defined for 10^10 Msun halos
         param_legend['F_ESC10'] = True
 
-        Fiducial_Fesc10 = -1.301029996 # logarithmic scale: 0.05
+        Fiducial_Fesc10 = -1. # logarithmic scale: 0.1
         LowerBound_Fesc10 = -3
         UpperBound_Fesc10 = 0.
 
@@ -592,7 +592,7 @@ if __name__ == '__main__':
         # Halo mass threshold for efficient star formation (in Msun)
         param_legend['M_TURN'] = True
 
-        Fiducial_Mturn = 8.69897     # logarithmic scale: 8 x 10^10
+        Fiducial_Mturn = 8.69897     # logarithmic scale: 5 x 10^8
         LowerBound_Mturn = 8.
         UpperBound_Mturn = 10.
 
@@ -606,7 +606,7 @@ if __name__ == '__main__':
         # Also, will be a free parameter with Luminosity function in the next version.
         param_legend['t_STAR'] = True
 
-        Fiducial_t_STAR = 0.8
+        Fiducial_t_STAR = 0.5
         LowerBound_t_STAR = 0.01
         UpperBound_t_STAR = 1.
 
@@ -827,14 +827,14 @@ if __name__ == '__main__':
 
 	# All these parameters are passed to a text-file for which the 21CMMC driver can read in and use these parameters to perform any computation.
 
-        # New in v1.4 : (3) start
-        Fiducial_Params['F_STAR10'] = Fiducial_Fstar10
-        Fiducial_Params['ALPHA_STAR'] = Fiducial_AlphaStar
-        Fiducial_Params['F_ESC10'] = Fiducial_Fesc10
-        Fiducial_Params['ALPHA_ESC'] = Fiducial_AlphaEsc
-        Fiducial_Params['M_TURN'] = Fiducial_Mturn
-        Fiducial_Params['t_STAR'] = Fiducial_t_STAR
-        # New in v1.4 : (3) end
+	# New in v1.4 : (3) start
+	Fiducial_Params['F_STAR10'] = Fiducial_Fstar10
+	Fiducial_Params['ALPHA_STAR'] = Fiducial_AlphaStar
+	Fiducial_Params['F_ESC10'] = Fiducial_Fesc10
+	Fiducial_Params['ALPHA_ESC'] = Fiducial_AlphaEsc
+	Fiducial_Params['M_TURN'] = Fiducial_Mturn
+	Fiducial_Params['t_STAR'] = Fiducial_t_STAR
+	# New in v1.4 : (3) end
 
 	Fiducial_Params['ZETA'] = Fiducial_Zeta
 	Fiducial_Params['MFP'] = Fiducial_MFP
