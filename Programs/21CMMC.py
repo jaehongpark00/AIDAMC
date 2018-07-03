@@ -270,6 +270,14 @@ if __name__ == '__main__':
 	IncludeMcGreer = True
 	# 3) The Greig et al. prior is computed directly from the PDF of the IGM neutral fraction for the Small HII reionisation simulation
 	IncludeGreig = False
+    # 4) The ionizing emissivities at z = 5.4 and 5.8 from D'Aloisio et al. (2018), MNRAS,473,560.
+    # At z ~ 5.4 <\epsilon_{912}> = 0.95^{+0.36}_{-0.38},
+    # at z ~ 5.8 <\epsilon_{912}> = 1.39^{+0.37}_{-0.53} in units of 'x10^{25} erg s^-1 Mpc^-3 Hz^-1.
+	# The values are taken with the largest emissivity, i.e. short mean free path, to consevative assumption.
+	# The units are converted from [erg s^-1 Mpc^-3 Hz^-1] to [the number of ionizing phtons baryon^-1 Gyr^-1]
+	# using assumption of continuum slope (L_{\nu} \propto \nu^{\alpha}) with \alpha = -1.5.
+    # This prior is a upper limit.
+	IncludeEmissivity = True
 	
 	# A check to see if additional redshifts have been added to the computation that are not necessary
 	if IncludePlanck is False and IncludeMcGreer is False and IncludeGreig is False and len(Redshifts_For_Prior) > 0:
@@ -284,6 +292,7 @@ if __name__ == '__main__':
 	PriorLegend['PlanckPrior'] = IncludePlanck
 	PriorLegend['McGreerPrior'] = IncludeMcGreer
 	PriorLegend['GreigPrior'] = IncludeGreig
+	PriorLegend['EmissivityPrior'] = IncludeEmissivity
 	
 	# If the QSO damping wing constraint is set, need to read in the PDF data from the provided text file.
 	NFVals_QSODamping = []
@@ -906,6 +915,9 @@ if __name__ == '__main__':
         if IncludeLF:
 		    command = "mkdir %s/LFData"%(Create_Output_Directory)
 		    os.system(command)
+        if IncludeEmissivity:
+		    command = "mkdir %s/EmissivityData"%(Create_Output_Directory)
+		    os.system(command)
 
 	FlagOptions['KEEP_ALL_DATA_FILENAME'] = Create_Output_Directory
 
@@ -1017,7 +1029,7 @@ if __name__ == '__main__':
 
 	chain.setup()
 
-	File_String = 'ReionModel_LF_taue_%s_%s'%(Telescope_Name,multiz_flag)
+	File_String = 'ReionModel_LF_emissivity_%s_%s'%(Telescope_Name,multiz_flag)
 
 	sampler = CosmoHammerSampler(
                     params = params,

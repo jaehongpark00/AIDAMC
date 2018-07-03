@@ -17,7 +17,7 @@
  
  It is called from command line, with a fixed number of arguments (order is important). There is basically no error checking, as it would be too complicated to use that within the MCMC.
  
- An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 1 6.0 1 
+ An example command line call: ./drive_21cmMC_streamlined 1.000000 1.000000 0 1 1 6.0 1 1
  
  First two indices are required for opening the Walker_ID1_ID2.txt and WalkerCosmology_ID1_ID2.txt which contain all the cosmology and astrophysical parameters (example included)
  
@@ -30,6 +30,8 @@
  Sixth argument: Redshift to which Ts.c is evolved down to
 
  Seventh argument: (0 or 1), calculates luminosity functions (1) or not (0). (New in v1.4)
+
+ Eighth argument: (0 or 1), include a prior of the ionizing emissivity (1) or not (0). (New in v1.4)
 
  
 */
@@ -60,6 +62,7 @@ void ComputePerturbField(float REDSHIFT_SAMPLE);
 void GeneratePS(int CO_EVAL, double AverageTb);
 
 void ComputeLF(); // New in v1.4
+void ComputeEmissivity(); // New in v1.4
 
 void ReadFcollTable();
 
@@ -106,7 +109,6 @@ unsigned long long coeval_box_pos_FFT(int LOS_dir,int xi,int yi,int zi){
 }
 
 int main(int argc, char ** argv){
-	printf("begin, time=%06.2f min\n", (double)clock()/CLOCKS_PER_SEC/60.0);
     
     // The standard build of 21cmFAST requires openmp for the FFTs. 21CMMC does not, however, for some computing architectures, I found it important to include this
     omp_set_num_threads(1);
@@ -156,6 +158,10 @@ int main(int argc, char ** argv){
 	// Flag set to 1 if Luminosity functions are to be used together with outputs from 21cm signals.
 	// Flag set to 2 if one wants to compute Luminosity functions with tau_e, i.e. without PS
 	USE_LF = atof(argv[7]);
+
+	// Flag set to 1 if the emissivity prior is to be use.
+	// If not set to 0.
+	USE_EMISSIVITY = atof(argv[8]);
     
     // Determines the lenght of the walker file, given the values set by TOTAL_AVAILABLE_PARAMS in Variables.h and the number of redshifts
     if(USE_LIGHTCONE) {
@@ -393,6 +399,11 @@ int main(int argc, char ** argv){
 		ComputeLF();
 
 		destroy_LF_arrays();
+	}
+
+	if (USE_EMISSIVITY) {
+	// Compute the ionizing emissivity to use for a prior.
+		ComputeEmissivity();
 	}
 
     
@@ -664,8 +675,6 @@ int main(int argc, char ** argv){
     fftwf_free(z_re);
     fftwf_free(Gamma12);
 
-	printf("END, time=%06.2f min\n", (double)clock()/CLOCKS_PER_SEC/60.0);
-
     return 0;
 }
 
@@ -738,6 +747,31 @@ void ComputeLF() {
             fclose(F);
         }
 	}
+}
+
+void ComputeEmissivity() {
+	char filename[500];
+	FILE *F;
+
+	int i;
+	double Mhalo_min = 1e6, Mhalo_max = 1e16;
+	float Mlim_Fstar,Fstar,Mlim_Fesc,Fesc;
+	double emissivity;
+	float z_list[NUM_OF_REDSHIFT_FOR_EMISSIVITY] = {5.40, 5.80};
+
+	Mlim_Fstar = Mass_limit_bisection((float)Mhalo_min*0.999, (float)Mhalo_max*1.001, ALPHA_STAR, F_STAR10);
+	Mlim_Fesc = Mass_limit_bisection((float)Mhalo_min*0.999, (float)Mhalo_max*1.001, ALPHA_ESC, F_ESC10);
+
+    sprintf(filename, "Emissivity_%1.6lf_%1.6lf.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2);
+    F=fopen(filename, "wt");
+
+    
+    for(i=0;i<NUM_OF_REDSHIFT_FOR_EMISSIVITY;i++) {
+        emissivity = ION_EFF_FACTOR*FgtrM_st_SFR(z_list[i], M_TURN, ALPHA_STAR, ALPHA_ESC, F_STAR10, F_ESC10, Mlim_Fstar, Mlim_Fesc)/0.5 * hubble(z_list[i])*SperYR*1e9;
+        fprintf(F, "%f\t%f\n",z_list[i],emissivity);
+    }   
+    fclose(F);
+
 }
 
 void ComputeTsBoxes() {
@@ -2425,7 +2459,7 @@ void ComputeIonisationBoxes(int sample_index, float REDSHIFT_SAMPLE, float PREV_
     if(STORE_DATA) {
         aveNF[sample_index] = nf;
     }
-    
+   
     if(!USE_LIGHTCONE) {
         if(PRINT_FILES) {
             sprintf(filename, "NeutralFraction_%f_%f_%f.txt",INDIVIDUAL_ID,INDIVIDUAL_ID_2,REDSHIFT_SAMPLE);

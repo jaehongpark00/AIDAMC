@@ -120,7 +120,7 @@ class Likelihood21cmFast_multiz(object):
         # Add light cone flag
         seq.append("%s"%(LightConeFlag))
         
-	# If mass-dependence on ionising efficiency is allowed. Add the flag here
+		# If mass-dependence on ionising efficiency is allowed. Add the flag here
         if self.FlagOptions['USE_MASS_DEPENDENT_ZETA'] is True:
             seq.append("1")
         else:
@@ -131,11 +131,19 @@ class Likelihood21cmFast_multiz(object):
         #StringArgument = string.join(seq,separator)
         #print 'StringArgument:',StringArgument
         
-        #if self.IncludeLF is True:
+        # If including luminosity function for constraints on the free parameters
         if self.IncludeLF is 1:
             seq.append("1")
         elif self.IncludeLF is 2:
 		    seq.append("2")
+        else:
+            seq.append("0")
+
+        StringArgument = string.join(seq,separator)
+
+        # If including emissivity as a prior
+        if self.PriorLegend['EmissivityPrior'] is True:
+            seq.append("1")
         else:
             seq.append("0")
 
@@ -805,6 +813,30 @@ class Likelihood21cmFast_multiz(object):
                 QSO_Prob = -2.*np.log(QSO_Prob)
 
                 total_sum = total_sum + QSO_Prob
+        if (self.PriorLegend['EmissivityPrior'] is True):
+		    # Emissivity and one sigma errors for the D'Aloisio et al. (2018) constraints
+			# Modelled as a flat, unity prior at emissivity <= 7.38 (z~5.4) and <= 5.04 (z~5.04), and a one sided Gaussian at emissivity > 7.38 (z~5.4) and >5.04 (z~5.8) .
+			# Gaussian of mean 7.38 (5.04) and one sigma of 1.96 (1.91) at z~5.4 (z~5.8).
+            z_obs = [5.40, 5.80]
+            emissivity_obs = [7.38, 5.04]
+            emissivity_error = [1.96, 1.91]
+
+            z_model = np.loadtxt('Emissivity_%s.txt'%(StringArgument_other), usecols=(0,))
+            emissivity_model = np.loadtxt('Emissivity_%s.txt'%(StringArgument_other), usecols=(1,))
+            
+            for ii in range(len(z_obs)):
+                if emissivity_model[ii] <= emissivity_obs[ii]:
+                    total_sum = total_sum + 0.0 # Add zero, as we use the observed emissivity is a upper limit.
+                    print ('Emissivity is samll\n')
+                else:
+                    total_sum = total_sum + np.square( ( emissivity_obs[ii] - emissivity_model[ii] )/(emissivity_error[ii]) )
+                    print ('Emissivity: chi2 = %f\n'%(np.square( ( emissivity_obs[ii] - emissivity_model[ii] )/(emissivity_error[ii]) )))
+            if self.FlagOptions['KEEP_ALL_DATA'] is True:
+                command = "mv Emissivity_%s_%s.txt %s/EmissivityData/"%(Individual_ID,Decimal(repr(params[0])).quantize(SIXPLACES),self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+            else:
+                command = "rm Emissivity_%s_%s.txt %s/EmissivityData/"%(Individual_ID,Decimal(repr(params[0])).quantize(SIXPLACES),self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
+            os.system(command)
+
         
         if self.IncludeLightCone is True:
 
@@ -849,11 +881,11 @@ class Likelihood21cmFast_multiz(object):
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
                 for j in range(len(self.Redshifts_For_LF)):
                     command = "mv LF_estimate_%s_%s.txt %s/LFData/"%(StringArgument_other,self.Redshifts_For_LF[j],self.FlagOptions['KEEP_ALL_DATA_FILENAME'])
-                os.system(command)
+                    os.system(command)
             else:
                 for j in range(len(self.Redshifts_For_LF)):
                     command = "rm LF_estimate_%s_%s.txt"%(StringArgument_other,self.Redshifts_For_LF[j])
-                os.system(command)
+                    os.system(command)
 
         if OutputGlobalAve == 1:
             if self.FlagOptions['KEEP_ALL_DATA'] is True:
